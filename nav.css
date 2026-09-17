@@ -1,0 +1,253 @@
+/*
+ * nav.css — CV. Miki Kijang App
+ * Shared responsive navigation styles.
+ * Include on every protected page BEFORE auth.js.
+ *
+ * Layout tiers:
+ *   Mobile  < 640px   : no sidebar, hamburger drawer (slide-in from left)
+ *   Tablet  640–1023px: icon-only sidebar (60px), no hamburger
+ *   Desktop ≥ 1024px  : full sidebar (210px)
+ */
+
+:root {
+  --sidebar-w: 210px;
+  --sidebar-icon-w: 60px;
+  --header-h: 52px;
+  --bg: #F5F2ED;
+  --surface: #FFF;
+  --surface2: #F0EDE8;
+  --border: #D9D4CC;
+  --border-dark: #2D2926;
+  --text: #1A1714;
+  --text-2: #6B6560;
+  --text-3: #9E9891;
+  --accent: #C4501A;
+  --accent-bg: #FDF1EC;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --mono: 'DM Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+
+/* ── APP SHELL ── */
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--text);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 60;
+  width: var(--sidebar-w);
+  overflow: hidden;
+  overflow-y: auto;
+  transition: transform .25s cubic-bezier(.4,0,.2,1), width .2s;
+  /* Hide scrollbar */
+  scrollbar-width: none;
+}
+.sidebar::-webkit-scrollbar { display: none; }
+
+/* Desktop: always visible */
+@media (min-width: 1024px) {
+  .sidebar { transform: translateX(0) !important; }
+}
+
+/* Tablet: icon-only, always visible */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .sidebar {
+    width: var(--sidebar-icon-w);
+    transform: translateX(0) !important;
+  }
+  .sidebar .brand,
+  .sidebar .sub,
+  .sidebar .nav-label,
+  .sidebar .sidebar-footer,
+  .sidebar .nav-text,
+  .sidebar-user { display: none !important; }
+  .sidebar .sidebar-logo {
+    padding: 14px 0;
+    display: flex;
+    justify-content: center;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    margin-bottom: 8px;
+  }
+  .sidebar .sidebar-logo::before {
+    content: 'MK';
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,.7);
+  }
+  .sidebar .nav-item {
+    justify-content: center;
+    padding: 10px 0;
+    width: var(--sidebar-icon-w);
+    border-radius: 0;
+  }
+  .sidebar .nav-section { padding: 0; }
+}
+
+/* Mobile: hidden by default, slides in as drawer */
+@media (max-width: 639px) {
+  .sidebar {
+    width: var(--sidebar-w);
+    transform: translateX(calc(-1 * var(--sidebar-w)));
+    z-index: 200;
+    box-shadow: 4px 0 24px rgba(0,0,0,.25);
+  }
+  .sidebar.open { transform: translateX(0); }
+}
+
+/* Sidebar inner elements */
+.sidebar-logo {
+  padding: 0 20px 22px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+.brand {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,.9);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.sub {
+  font-size: 10px;
+  color: rgba(255,255,255,.3);
+  margin-top: 2px;
+  font-family: var(--mono);
+}
+.nav-section { padding: 0 10px; margin-bottom: 2px; }
+.nav-label {
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.22);
+  padding: 10px 8px 5px;
+  font-family: var(--mono);
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  color: rgba(255,255,255,.45);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.nav-item:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.8); }
+.nav-item.active { background: var(--accent); color: #fff; font-weight: 500; }
+.nav-icon { font-size: 14px; width: 16px; text-align: center; flex-shrink: 0; }
+.nav-text { /* the label text inside nav-item */ }
+.sidebar-footer {
+  margin-top: auto;
+  padding: 14px 20px 0;
+  border-top: 1px solid rgba(255,255,255,.07);
+  flex-shrink: 0;
+}
+.sidebar-date {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: rgba(255,255,255,.25);
+  line-height: 1.7;
+}
+
+/* ── DRAWER OVERLAY (mobile) ── */
+.nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 190;
+  opacity: 0;
+  transition: opacity .25s;
+}
+@media (max-width: 639px) {
+  .nav-overlay.show { display: block; opacity: 1; }
+}
+
+/* ── MAIN CONTENT AREA ── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin-left: var(--sidebar-w);
+  transition: margin-left .2s;
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .main { margin-left: var(--sidebar-icon-w); }
+}
+@media (max-width: 639px) {
+  .main { margin-left: 0; }
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  flex-shrink: 0;
+}
+@media (max-width: 1023px) { .topbar { padding: 0 16px; } }
+.topbar-title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.topbar-user { font-size: 12px; color: var(--text-3); font-family: var(--mono); }
+@media (max-width: 639px) { .topbar-user { display: none; } }
+
+/* ── HAMBURGER BUTTON ── */
+.hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  transition: background .12s;
+  flex-shrink: 0;
+}
+.hamburger:hover { background: var(--surface2); }
+.hamburger span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: all .2s;
+}
+@media (max-width: 639px) { .hamburger { display: flex; } }
+
+/* ── CONTENT PADDING ── */
+.content {
+  padding: 20px 24px 60px;
+  flex: 1;
+}
+@media (max-width: 639px) {
+  .content { padding: 16px 14px 32px; }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .content { padding: 18px 20px 60px; }
+}

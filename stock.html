@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Stock — CV. Miki Kijang</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F2ED;--surface:#FFF;--surface2:#F0EDE8;
+  --border:#D9D4CC;--border-dark:#2D2926;
+  --text:#1A1714;--text-2:#6B6560;--text-3:#9E9891;
+  --accent:#C4501A;--accent-bg:#FDF1EC;
+  --green:#1A6B45;--green-bg:#EDF6F1;
+  --amber:#8B5C00;--amber-bg:#FEF8EC;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --radius:10px;--radius-sm:6px;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --header-h:52px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+
+/* Layout */
+.app{display:flex;min-height:100vh;}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:210px;background:var(--text);display:flex;flex-direction:column;z-index:100;overflow-y:auto;}
+.main{flex:1;margin-left:210px;display:flex;flex-direction:column;min-height:100vh;}
+@media(min-width:640px) and (max-width:1023px){.sidebar{width:60px;}.main{margin-left:60px;}}
+@media(max-width:639px){
+  .sidebar{transform:translateX(-100%);transition:transform .25s;width:210px;}
+  .sidebar.open{transform:translateX(0);box-shadow:4px 0 24px rgba(0,0,0,.3);}
+  .main{margin-left:0;}
+  .mk-hamburger{display:flex!important;}
+}
+
+/* Topbar */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:var(--header-h);display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50;}
+@media(max-width:639px){.topbar{position:fixed;left:0;right:0;top:0;padding:0 14px;}}
+.topbar-title{font-size:14px;font-weight:600;flex:1;}
+.topbar-user{font-size:12px;color:var(--text-3);font-family:var(--mono);}
+.mk-hamburger{display:none;width:32px;height:32px;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:16px;background:var(--surface);flex-shrink:0;}
+.mk-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99;}
+@media(max-width:639px){.mk-overlay.open{display:block;}}
+
+/* Sidebar internals */
+.sidebar-logo{padding:0 20px 22px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:10px;}
+.brand{font-family:var(--mono);font-size:13px;font-weight:500;color:rgba(255,255,255,.9);letter-spacing:.05em;text-transform:uppercase;}
+.sub{font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;font-family:var(--mono);}
+.sidebar-user{padding:0 12px 14px;}
+.user-pill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px 10px;cursor:pointer;}
+.user-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.user-info{flex:1;min-width:0;}
+.user-name{font-size:12px;font-weight:600;color:rgba(255,255,255,.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-role{font-size:10px;color:rgba(255,255,255,.35);font-family:var(--mono);}
+.user-logout{font-size:14px;color:rgba(255,255,255,.3);flex-shrink:0;}
+.nav-section{padding:0 10px;margin-bottom:2px;}
+.nav-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.22);padding:10px 8px 5px;font-family:var(--mono);}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--radius-sm);color:rgba(255,255,255,.45);font-size:13px;cursor:pointer;transition:all .15s;}
+.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.8);}
+.nav-item.active{background:var(--accent);color:#fff;font-weight:500;}
+.nav-icon{font-size:14px;width:16px;text-align:center;flex-shrink:0;}
+.nav-label-text{}
+.sidebar-footer{margin-top:auto;padding:14px 20px 0;border-top:1px solid rgba(255,255,255,.07);}
+.sidebar-date{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.25);line-height:1.7;}
+@media(min-width:640px) and (max-width:1023px){
+  .sidebar .brand,.sidebar .sub,.sidebar .nav-label,.sidebar .nav-label-text,
+  .sidebar .sidebar-footer,.sidebar .user-info,.sidebar .user-logout{display:none;}
+  .sidebar .nav-item{justify-content:center;padding:11px 0;}
+  .sidebar .nav-icon{font-size:18px;width:auto;}
+  .sidebar .sidebar-logo{padding:14px 0;display:flex;justify-content:center;}
+  .sidebar-user{display:flex;justify-content:center;padding:8px 0;}
+  .user-pill{background:transparent;border:none;padding:0;justify-content:center;}
+  .user-av{width:30px;height:30px;font-size:11px;}
+}
+
+/* Content */
+.d-content{padding:22px 26px 60px;}
+@media(min-width:640px) and (max-width:1023px){.d-content{padding:18px 20px 50px;}}
+@media(max-width:639px){.d-content{padding:calc(var(--header-h) + 12px) 0 40px;}}
+
+/* Inputs */
+input,select,textarea{font-family:var(--sans);font-size:13px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 11px;width:100%;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--border-dark);box-shadow:0 0 0 3px rgba(29,23,20,.06);}
+input::placeholder,textarea::placeholder{color:var(--text-3);}
+label{font-size:10px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);display:block;margin-bottom:4px;}
+.field{display:flex;flex-direction:column;}
+
+/* Card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;}
+.card:last-child{margin-bottom:0;}
+
+/* Tabs */
+.tab-bar{display:flex;background:var(--surface2);border-bottom:1px solid var(--border);padding:0 18px;}
+.tab{padding:11px 16px;font-size:12px;font-weight:600;font-family:var(--mono);color:var(--text-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* Stock grid */
+.sg-hd{display:grid;padding:7px 16px;background:var(--surface2);border-bottom:1px solid var(--border);grid-template-columns:1fr 80px 110px 1fr;}
+.sg-hd span{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);font-family:var(--mono);}
+.sg-row{display:grid;grid-template-columns:1fr 80px 110px 1fr;border-bottom:1px solid var(--surface2);align-items:center;}
+.sg-row:last-child{border-bottom:none;}
+.sg-row:hover{background:rgba(0,0,0,.015);}
+.sr-produk{padding:10px 16px;font-size:13px;font-weight:600;}
+.sr-sat{padding:10px 8px;font-family:var(--mono);font-size:12px;color:var(--text-3);}
+.sr-qty{padding:6px 8px 6px 0;}
+.sr-qty input{text-align:right;font-family:var(--mono);font-size:14px;font-weight:700;padding:7px 10px;}
+.sr-cat{padding:6px 12px 6px 4px;}
+.sr-cat input{font-size:12px;padding:7px 9px;color:var(--text-2);}
+.kat-sep{padding:6px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-family:var(--mono);}
+
+/* Tablet/mobile: hide catatan column */
+@media(max-width:1023px){
+  .sg-hd{grid-template-columns:1fr 80px 110px;}
+  .sg-row{grid-template-columns:1fr 80px 110px;}
+  .sr-cat,.sg-cat-hd{display:none;}
+}
+
+/* Date nav */
+.dn{display:flex;align-items:center;gap:7px;}
+.dn-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-size:14px;background:var(--surface);}
+.dn-btn:hover{background:var(--surface2);}
+.dn input{max-width:148px;text-align:center;}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .15s;font-family:var(--sans);}
+.btn-primary{background:var(--text);color:#fff;}
+.btn-primary:hover{background:#333;}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;}
+
+/* Riwayat table */
+.rw-table{width:100%;border-collapse:collapse;}
+.rw-table th{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);font-family:var(--mono);padding:0 16px 8px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+.rw-table td{padding:10px 16px;font-size:13px;border-bottom:1px solid var(--surface2);}
+.rw-table tr:last-child td{border-bottom:none;}
+@media(max-width:639px){
+  .rw-table th:nth-child(5),.rw-table td:nth-child(5),
+  .rw-table th:nth-child(6),.rw-table td:nth-child(6){display:none;}
+}
+
+/* Misc */
+.empty{padding:36px;text-align:center;color:var(--text-3);font-size:13px;font-style:italic;}
+.locked{padding:36px;text-align:center;color:var(--text-3);}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;font-size:13px;padding:10px 20px;border-radius:999px;z-index:999;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.mono{font-family:var(--mono);}
+.muted{color:var(--text-3);font-size:12px;}
+</style>
+<script src="mk-config.js"></script>
+<script src="auth.js"></script>
+<script src="mk-net.js"></script>
+<link rel="stylesheet" href="mk-responsive.css">
+</head>
+<body>
+
+<div class="mk-overlay" id="mk-overlay" onclick="closeSB()"></div>
+
+<div class="app">
+  <aside class="sidebar" id="d-sidebar"></aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="mk-hamburger" id="mk-hamburger" onclick="toggleSB()">&#9776;</div>
+      <div class="topbar-title">&#128230; Stock Barang</div>
+      <span class="topbar-user" id="d-topbar-user"></span>
+      <div id="m-av"></div>
+    </div>
+
+    <div class="d-content">
+      <div class="card">
+        <div class="tab-bar">
+          <div class="tab active" id="d-ti" onclick="sw('i')">&#128221; Input Stock</div>
+          <div class="tab"        id="d-th" onclick="sw('h')">&#128203; Riwayat Stock</div>
+        </div>
+
+        <!-- INPUT TAB -->
+        <div class="tab-content active" id="d-ci">
+          <div id="d-i-locked" class="locked" style="display:none;">
+            <div style="font-size:28px;margin-bottom:8px;">&#128274;</div>
+            Input stock hanya untuk <b>Pabrik Packaging</b> dan <b>Admin</b>.
+          </div>
+          <div id="d-i-form" style="display:none;">
+            <div style="padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+              <div class="dn">
+                <div class="dn-btn" onclick="mvDate(-1)">&#8249;</div>
+                <input type="date" id="d-stgl" onchange="renderSG();updLbl()">
+                <div class="dn-btn" onclick="mvDate(1)">&#8250;</div>
+              </div>
+              <span id="d-dlbl" style="font-size:12px;color:var(--text-3);font-family:var(--mono);"></span>
+            </div>
+            <div class="sg-hd">
+              <span>Produk</span><span>Satuan</span><span style="text-align:right;">Qty</span><span class="sg-cat-hd" style="padding-left:4px;">Catatan</span>
+            </div>
+            <div id="d-sg"></div>
+            <div style="padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;">
+              <button class="btn btn-primary" id="d-bsv" onclick="submitStock()">&#128190; Simpan Stock</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIWAYAT TAB -->
+        <div class="tab-content" id="d-ch">
+          <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div class="field" style="max-width:160px;">
+              <label>Tanggal</label>
+              <input type="date" id="d-h-tgl" onchange="renderHist()">
+            </div>
+            <div style="position:relative;max-width:200px;margin-top:14px;">
+              <select id="d-h-prd" onchange="renderHist()" style="font-size:12px;padding:7px 26px 7px 10px;"></select>
+              <span style="position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text-3);pointer-events:none;">&#9662;</span>
+            </div>
+          </div>
+          <div id="d-h-body" style="overflow-x:auto;"><div class="empty">Pilih tanggal untuk melihat riwayat</div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+const GAS=MK_CONFIG.GAS;
+
+const MPD=[];
+
+function jakartaDate(offsetDays=0){
+  const d = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));
+  d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+const td=jakartaDate();
+const yd=jakartaDate(-1);
+const d2=jakartaDate(-2);
+const MS=[];
+let PRODUK=[],STOCK=[],SESS=null;
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  // Auth
+  MK_AUTH.ensureDemo();
+  SESS=MK_AUTH.require('login.html',['packaging','admin']);
+  if(!SESS)return;
+
+  // Sidebar (uses auth.js built-in CSS injection)
+  MK_AUTH.initPage('stock.html');
+
+  // Topbar
+  const _rl={admin:'⚡ Admin',packaging:'📦 Packaging',produksi:'🏭 Produksi'};
+  const _tu=document.getElementById('d-topbar-user');
+  if(_tu)_tu.textContent=SESS.nama+' · '+(_rl[SESS.role]||SESS.role);
+  const _mav=document.getElementById('m-av');
+  if(_mav)_mav.innerHTML=MK_AUTH._avatarHTML();
+
+  // Set dates
+  const s=document.getElementById('d-stgl');if(s)s.value=td;
+  const h=document.getElementById('d-h-tgl');if(h)h.value=yd;
+
+  // Access control
+  const canInput=MK_AUTH.canInputStock();
+  const lk=document.getElementById('d-i-locked');
+  const fm=document.getElementById('d-i-form');
+  if(lk)lk.style.display=canInput?'none':'block';
+  if(fm)fm.style.display=canInput?'block':'none';
+  updLbl();
+
+  MK_LOADER.show();
+  try{
+    const[dP,dS]=await Promise.all([
+      MK_CACHE.fetch('getProduk', GAS),
+      MK_CACHE.fetch('getStock',  GAS),
+    ]);
+    PRODUK=dP.success?dP.produk.map(p=>({...p,kat:p.kategori||'Lainnya'})):[];
+    STOCK=dS.success?dS.stock:[];
+  }catch(e){} finally{MK_LOADER.hide();}
+
+  popFilter();
+  if(canInput)renderSG();
+  renderHist();
+});
+
+function go(p){window.location.href=p;}
+
+function toggleSB(){
+  document.getElementById('d-sidebar')?.classList.toggle('open');
+  document.getElementById('mk-overlay')?.classList.toggle('open');
+}
+function closeSB(){
+  document.getElementById('d-sidebar')?.classList.remove('open');
+  document.getElementById('mk-overlay')?.classList.remove('open');
+}
+
+function sw(t){
+  ['i','h'].forEach(x=>{
+    document.getElementById(`d-t${x}`)?.classList.toggle('active',x===t);
+    document.getElementById(`d-c${x}`)?.classList.toggle('active',x===t);
+  });
+  if(t==='h')renderHist();
+  if(t==='i')renderSG();
+}
+
+function mvDate(dir){
+  const inp=document.getElementById('d-stgl');if(!inp||!inp.value)return;
+  const d=new Date(inp.value+'T00:00:00');d.setDate(d.getDate()+dir);
+  inp.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  if(MK_AUTH.canInputStock())renderSG();updLbl();
+}
+function updLbl(){
+  const el=document.getElementById('d-dlbl');if(!el)return;
+  const v=document.getElementById('d-stgl')?.value;
+  el.textContent=v===td?'Hari ini':v===yd?'Kemarin':'';
+}
+
+function renderSG(){
+  const grid=document.getElementById('d-sg');if(!grid)return;
+  const tgl=document.getElementById('d-stgl')?.value||td;
+  const saved={};
+  STOCK.filter(s=>s.tanggal===tgl).forEach(s=>{
+    saved[`${s.produk}|${s.satuan}`]={qty:s.qty,catatan:s.catatan||''};
+  });
+  const byKat={};
+  PRODUK.forEach(p=>{
+    const k=p.kat||p.kategori||'Lainnya';
+    if(!byKat[k])byKat[k]=[];
+    (p.satuanList||[]).forEach(s=>byKat[k].push({produk:p.nama,satuan:s.satuan||s}));
+  });
+  let html='';
+  Object.entries(byKat).forEach(([kat,rows])=>{
+    html+=`<div class="kat-sep">${kat}</div>`;
+    rows.forEach(({produk,satuan})=>{
+      const key=`${produk}|${satuan}`;
+      const sv=saved[key]||{qty:'',catatan:''};
+      const sid=key.replace(/\|/g,'-').replace(/\s+/g,'_');
+      html+=`<div class="sg-row">
+        <div class="sr-produk">${produk}</div>
+        <div class="sr-sat">${satuan}</div>
+        <div class="sr-qty"><input type="number" min="0" id="sq-${sid}" placeholder="0" value="${sv.qty}" data-p="${produk}" data-s="${satuan}"></div>
+        <div class="sr-cat"><input type="text" id="sc-${sid}" placeholder="Catatan opsional..." value="${sv.catatan}" data-p="${produk}" data-s="${satuan}"></div>
+      </div>`;
+    });
+  });
+  grid.innerHTML=html||'<div class="empty">Tidak ada produk</div>';
+}
+
+async function submitStock(){
+  if(!MK_AUTH.canInputStock()){toast('Tidak ada akses.');return;}
+  const tgl=document.getElementById('d-stgl')?.value||td;
+  const qInps=document.querySelectorAll('[id^="sq-"]');
+  const entries=[];
+  qInps.forEach(inp=>{
+    const qty=inp.value===''?null:parseFloat(inp.value);
+    if(qty===null||isNaN(qty)||qty<0)return;
+    const sid=inp.id.slice(3);
+    const cat=document.getElementById(`sc-${sid}`);
+    entries.push({tanggal:tgl,produk:inp.dataset.p,satuan:inp.dataset.s,qty,catatan:cat?.value.trim()||'',input_by:SESS?.nama||'?'});
+  });
+  if(!entries.length){toast('Isi minimal 1 data stock!');return;}
+  const btn=document.getElementById('d-bsv');
+  if(btn){btn.disabled=true;btn.textContent='Menyimpan...';}
+  try{
+    const r=await fetch(GAS,{method:'POST',body:JSON.stringify({action:'saveStock',entries})});
+    const d=await r.json();if(!d.success)throw 0;
+  }catch(e){}
+  MK_CACHE.bust('getStock');
+  entries.forEach(e=>{
+    const idx=STOCK.findIndex(s=>s.tanggal===e.tanggal&&s.produk===e.produk&&s.satuan===e.satuan);
+    if(idx>-1)STOCK[idx]=e;else STOCK.push(e);
+  });
+  toast(`Saved ${entries.length} items for ${tgl}`);
+  if(btn){btn.disabled=false;btn.textContent='Simpan Stock';}
+  renderHist();
+}
+
+function popFilter(){
+  const opts=PRODUK.map(p=>`<option value="${p.nama}">${p.nama}</option>`).join('');
+  const sel=document.getElementById('d-h-prd');
+  if(sel)sel.innerHTML=`<option value="">Semua Produk</option>${opts}`;
+}
+
+function renderHist(){
+  const body=document.getElementById('d-h-body');if(!body)return;
+  const tgl=document.getElementById('d-h-tgl')?.value||'';
+  const prd=document.getElementById('d-h-prd')?.value||'';
+  const canDel=MK_AUTH.canDeleteStock();
+  let data=[...STOCK];
+  if(tgl)data=data.filter(s=>s.tanggal===tgl);
+  if(prd)data=data.filter(s=>s.produk===prd);
+  data.sort((a,b)=>{
+    if(a.tanggal!==b.tanggal)return b.tanggal.localeCompare(a.tanggal);
+    return a.produk<b.produk?-1:a.produk>b.produk?1:0;
+  });
+  if(!data.length){body.innerHTML=`<div class="empty">Tidak ada data stock${tgl?' untuk '+tgl:''}</div>`;return;}
+  body.innerHTML=`<table class="rw-table"><thead><tr>
+    <th>Tanggal</th><th>Produk</th><th>Satuan</th>
+    <th style="text-align:right">Qty</th><th>Catatan</th><th>Input By</th>${canDel?'<th></th>':''}
+  </tr></thead><tbody>${data.map(s=>`<tr>
+    <td class="mono muted">${s.tanggal}</td>
+    <td style="font-weight:600">${s.produk}</td>
+    <td class="mono muted">${s.satuan}</td>
+    <td class="mono" style="text-align:right;font-size:15px;font-weight:700;">
+      ${canDel
+        ? `<input type="number" value="${s.qty}" min="0" style="width:70px;text-align:right;font-family:var(--mono);font-size:14px;font-weight:700;padding:3px 6px;" onchange="updateStockQty(this,'${s.id||''}','${s.tanggal}','${s.produk}','${s.satuan}')">`
+        : s.qty
+      }
+    </td>
+    <td style="color:var(--text-2);font-size:12px;">${canDel
+      ? `<input type="text" value="${s.catatan||''}" style="font-size:12px;padding:3px 6px;" placeholder="—" onchange="updateStockCat(this,'${s.id||''}','${s.tanggal}','${s.produk}','${s.satuan}')">`
+      : (s.catatan||'—')
+    }</td>
+    <td class="muted">${s.input_by}</td>
+    ${canDel?`<td><button onclick="delStock('${s.id||''}','${s.tanggal}','${s.produk}','${s.satuan}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:15px;padding:2px 6px;">✕</button></td>`:''}
+  </tr>`).join('')}</tbody></table>`;
+}
+
+function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2800);}
+
+async function updateStockQty(input,id,tgl,produk,satuan){
+  const qty=+input.value||0;
+  const idx=STOCK.findIndex(s=>s.id===id||(s.tanggal===tgl&&s.produk===produk&&s.satuan===satuan));
+  if(idx>-1){STOCK[idx].qty=qty;}
+  MK_CACHE.bust('getStock');
+  try{await fetch(GAS,{method:'POST',body:JSON.stringify({action:'saveStock',entries:[{tanggal:tgl,produk,satuan,qty,catatan:STOCK[idx]?.catatan||'',input_by:SESS?.nama||'admin'}]})});}catch(e){}
+}
+
+async function updateStockCat(input,id,tgl,produk,satuan){
+  const catatan=input.value.trim();
+  const idx=STOCK.findIndex(s=>s.id===id||(s.tanggal===tgl&&s.produk===produk&&s.satuan===satuan));
+  if(idx>-1){STOCK[idx].catatan=catatan;}
+  MK_CACHE.bust('getStock');
+  try{await fetch(GAS,{method:'POST',body:JSON.stringify({action:'saveStock',entries:[{tanggal:tgl,produk,satuan,qty:STOCK[idx]?.qty||0,catatan,input_by:SESS?.nama||'admin'}]})});}catch(e){}
+}
+
+async function delStock(id,tgl,produk,satuan){
+  if(!confirm(`Hapus data stock ${produk} ${satuan} tanggal ${tgl}?`))return;
+  STOCK=STOCK.filter(s=>!(s.tanggal===tgl&&s.produk===produk&&s.satuan===satuan));
+  renderHist();
+  toast('Data stock dihapus');
+  MK_CACHE.bust('getStock');
+  try{await fetch(GAS,{method:'POST',body:JSON.stringify({action:'deleteStock',id,tanggal:tgl,produk,satuan})});}catch(e){}
+}
+</script>
+<script src="mk-responsive.js"></script>
+</body>
+</html>

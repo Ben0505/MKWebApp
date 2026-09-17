@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Login — MK App</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F2ED;--surface:#FFF;--surface2:#F0EDE8;
+  --border:#D9D4CC;--border-dark:#2D2926;
+  --text:#1A1714;--text-2:#6B6560;--text-3:#9E9891;
+  --accent:#C4501A;--accent-bg:#FDF1EC;
+  --green:#1A6B45;--green-bg:#EDF6F1;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --amber:#8B5C00;--amber-bg:#FEF8EC;
+  --purple:#534AB7;--purple-bg:#F0EFFE;
+  --red:#B91C1C;
+  --radius:12px;--radius-sm:7px;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{
+  font-family:var(--sans);background:var(--bg);color:var(--text);
+  min-height:100vh;font-size:14px;line-height:1.5;
+  display:flex;align-items:center;justify-content:center;padding:24px 16px;
+}
+
+/* ── Outer wrap ── */
+.wrap{width:100%;max-width:400px;}
+
+/* ── Brand ── */
+.brand{text-align:center;margin-bottom:32px;}
+.brand-mark{
+  width:58px;height:58px;border-radius:16px;background:var(--text);
+  display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;
+  box-shadow:0 4px 20px rgba(26,23,20,.18);
+}
+.brand-mark svg{width:26px;height:26px;}
+.brand-name{font-family:var(--mono);font-size:19px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;}
+.brand-tagline{font-size:12px;color:var(--text-3);margin-top:4px;font-family:var(--mono);}
+
+/* ── Card ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.card-body{padding:28px;}
+
+/* ── Form fields ── */
+.field{margin-bottom:16px;}
+.field:last-of-type{margin-bottom:0;}
+.fl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);color:var(--text-2);display:block;margin-bottom:6px;}
+input[type=text],input[type=password]{
+  font-family:var(--sans);font-size:14px;color:var(--text);
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);padding:11px 14px;width:100%;
+  outline:none;transition:border-color .15s,box-shadow .15s;
+  -webkit-appearance:none;appearance:none;
+}
+input:focus{border-color:var(--border-dark);box-shadow:0 0 0 3px rgba(29,23,20,.07);}
+input::placeholder{color:var(--text-3);}
+input.shake{animation:shake .35s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+/* Password row */
+.pw-row{position:relative;}
+.pw-row input{padding-right:44px;}
+.pw-eye{position:absolute;right:13px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:15px;color:var(--text-3);user-select:none;transition:color .12s;}
+.pw-eye:hover{color:var(--text);}
+
+/* Error */
+.err{font-size:12px;color:var(--red);font-family:var(--mono);margin-top:10px;display:none;}
+.err.on{display:block;}
+
+/* Submit */
+.btn-submit{
+  width:100%;padding:12px 16px;border-radius:var(--radius-sm);
+  background:var(--text);color:#fff;font-size:14px;font-weight:700;
+  border:none;cursor:pointer;font-family:var(--sans);
+  transition:background .15s,transform .1s;margin-top:20px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  letter-spacing:.01em;
+}
+.btn-submit:hover{background:#2D2926;}
+.btn-submit:active{transform:scale(.99);}
+.btn-submit:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot .65s linear infinite;display:none;flex-shrink:0;}
+.spin.on{display:block;}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* ── Divider ── */
+.divider{display:flex;align-items:center;gap:10px;margin:20px 0;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.divider span{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);color:var(--text-3);white-space:nowrap;}
+
+/* ── Footer ── */
+.footer{text-align:center;margin-top:20px;font-size:11px;color:var(--text-3);font-family:var(--mono);}
+
+/* ── Success flash ── */
+.success{
+  position:fixed;inset:0;background:var(--bg);z-index:100;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.success.on{opacity:1;pointer-events:all;}
+.success-icon{width:60px;height:60px;border-radius:50%;background:var(--green-bg);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:26px;}
+.success-name{font-size:16px;font-weight:700;margin-top:4px;}
+.success-role{font-size:12px;color:var(--text-3);font-family:var(--mono);}
+</style>
+<script src="mk-config.js"></script>
+<link rel="stylesheet" href="mk-responsive.css">
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- Brand -->
+  <div class="brand">
+    <div class="brand-mark">
+      <!-- Simple box+plus icon -->
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+        <line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
+    </div>
+    <div class="brand-name">MK App</div>
+    <div class="brand-tagline">Sales &amp; Produksi Management</div>
+  </div>
+
+  <!-- Login card -->
+  <div class="card">
+    <div class="card-body">
+
+      <div class="field">
+        <span class="fl">Username</span>
+        <input type="text" id="inp-user" placeholder="username" autocomplete="username" autocapitalize="none" spellcheck="false">
+      </div>
+
+      <div class="field">
+        <span class="fl">Password</span>
+        <div class="pw-row">
+          <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter')doLogin()">
+          <div class="pw-eye" id="eye" onclick="toggleEye()">👁</div>
+        </div>
+      </div>
+
+      <div class="err" id="err"></div>
+
+      <button class="btn-submit" id="btn" onclick="doLogin()">
+        <span id="btn-txt">Masuk</span>
+        <div class="spin" id="spin"></div>
+      </button>
+
+    </div>
+  </div>
+
+  <div class="footer" id="foot">MK App</div>
+</div>
+
+<!-- Success overlay -->
+<div class="success" id="success">
+  <div class="success-icon">✓</div>
+  <div class="success-name" id="s-name"></div>
+  <div class="success-role" id="s-role"></div>
+</div>
+
+<script>
+const GAS = MK_CONFIG.GAS;
+const KEY = 'mk_session';
+
+
+const ROLE_INFO = {
+  admin:    {label:'⚡ Admin',           badge:'rb-admin',    dest:'input-penjualan.html', desc:'Akses penuh semua fitur'},
+  produksi: {label:'🏭 Pabrik Produksi', badge:'rb-produksi', dest:'langsiran.html',       desc:'Kirim barang · Riwayat'},
+  packaging:{label:'📦 Pabrik Packaging',badge:'rb-packaging',dest:'input-penjualan.html', desc:'Terima · Stock · Riwayat'},
+};
+
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('foot').textContent =
+    'MK App · v'+MK_CONFIG.VERSION+(MK_CONFIG.ENV_LABEL?' · '+MK_CONFIG.ENV_LABEL:'');
+  try{
+    const raw = localStorage.getItem(KEY) || sessionStorage.getItem(KEY);
+    const s = raw ? JSON.parse(raw) : null;
+    if(s?.id && (!s._exp || Date.now() < s._exp)){ doRedirect(s); return; }
+    if(s){ localStorage.removeItem(KEY); sessionStorage.removeItem(KEY); }
+  }catch{}
+  document.getElementById('inp-user').focus();
+});
+
+function toggleEye(){
+  const inp=document.getElementById('inp-pass');
+  const eye=document.getElementById('eye');
+  inp.type=inp.type==='password'?'text':'password';
+  eye.textContent=inp.type==='password'?'👁':'🔒';
+}
+
+function setErr(msg){
+  const el=document.getElementById('err');
+  el.textContent=msg;el.classList.add('on');
+  document.getElementById('inp-pass').classList.add('shake');
+  setTimeout(()=>document.getElementById('inp-pass').classList.remove('shake'),400);
+}
+function clearErr(){document.getElementById('err').classList.remove('on');}
+
+async function doLogin(){
+  const uname=document.getElementById('inp-user').value.trim().toLowerCase();
+  const pass=document.getElementById('inp-pass').value.trim();
+  clearErr();
+
+  if(!uname||!pass){setErr('⚠ Isi username dan password.');return;}
+
+  const btn=document.getElementById('btn');
+  const txt=document.getElementById('btn-txt');
+  const spin=document.getElementById('spin');
+  btn.disabled=true;txt.textContent='Memeriksa...';spin.classList.add('on');
+
+  let user=null;
+
+  // Try GAS
+  try{
+    const r=await fetch(`${GAS}?action=login&username=${encodeURIComponent(uname)}&password=${encodeURIComponent(pass)}`);
+    const d=await r.json();
+    if(d.success&&d.user)user=d.user;
+  }catch(_){}
+
+  btn.disabled=false;txt.textContent='Masuk';spin.classList.remove('on');
+
+  if(!user){
+    setErr(netFail
+      ? '⚠ Tidak bisa terhubung ke server. Cek koneksi, atau URL GAS di mk-config.js.'
+      : '⚠ Username atau password salah.');
+    document.getElementById('inp-pass').value='';
+    document.getElementById('inp-pass').focus();
+    return;
+  }
+
+  const sess = Object.assign({}, user, {
+    _exp: Date.now() + (MK_CONFIG.SESSION_HOURS||8)*3600e3
+  });
+  try{ localStorage.setItem(KEY,JSON.stringify(sess)); }
+  catch(e){ sessionStorage.setItem(KEY,JSON.stringify(sess)); }
+  doRedirect(user);
+}
+
+function doRedirect(user){
+  const ri=ROLE_INFO[user.role]||ROLE_INFO.admin;
+  // Show success flash
+  document.getElementById('s-name').textContent='Selamat datang, '+user.nama+'!';
+  document.getElementById('s-role').textContent=ri.label;
+  document.getElementById('success').classList.add('on');
+  setTimeout(()=>{window.location.href=ri.dest;},800);
+}
+</script>
+</body>
+</html>

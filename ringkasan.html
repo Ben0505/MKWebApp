@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Ringkasan Harian — CV. Miki Kijang</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="nav.css">
+<style>
+:root{
+  --bg:#F5F2ED;--surface:#FFF;--surface2:#F0EDE8;
+  --border:#D9D4CC;--border-dark:#2D2926;
+  --text:#1A1714;--text-2:#6B6560;--text-3:#9E9891;
+  --accent:#C4501A;--accent-bg:#FDF1EC;
+  --green:#1A6B45;--green-bg:#EDF6F1;
+  --amber:#8B5C00;--amber-bg:#FEF8EC;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --purple:#534AB7;--purple-bg:#F0EFFE;
+  --radius:10px;--radius-sm:6px;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --nav-h:56px;--header-h:52px;
+  --sidebar-w:210px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+
+/* ── DATE BAR ── */
+.date-bar{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:12px 18px;margin-bottom:16px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+@media(max-width:639px){.date-bar{border-radius:0;border-left:none;border-right:none;margin-bottom:12px;padding:10px 14px;}}
+.date-bar-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;font-family:var(--mono);color:var(--text-3);}
+.dn{display:flex;align-items:center;gap:6px;}
+.dn-btn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-size:14px;background:var(--surface);flex-shrink:0;}
+.dn-btn:hover{background:var(--surface2);}
+.dn input{max-width:148px;width:148px;text-align:center;font-family:var(--mono);font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;background:var(--surface);color:var(--text);outline:none;-webkit-appearance:none;}
+.dn input:focus{border-color:var(--border-dark);}
+@media(max-width:399px){.dn input{max-width:120px;width:120px;}}
+.btn-today{font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:999px;cursor:pointer;background:var(--surface);color:var(--text-2);font-family:var(--mono);white-space:nowrap;transition:all .12s;}
+.btn-today:hover{background:var(--surface2);}
+.date-lbl{font-size:12px;color:var(--text-3);font-family:var(--mono);}
+
+/* ── CARD BASE ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;}
+.card:last-child{margin-bottom:0;}
+.card-hd{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+.card-hd h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);}
+.card-hd .meta{font-size:11px;color:var(--text-3);font-family:var(--mono);}
+
+/* ══════════════════════════════════════
+   CATEGORY SECTION
+══════════════════════════════════════ */
+/* Each kategori gets its own block with 4 metric columns */
+.kat-block{border-bottom:1px solid var(--border);}
+.kat-block:last-child{border-bottom:none;}
+
+/* Header row */
+.kat-block-hd{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 18px;background:var(--surface2);border-bottom:1px solid var(--border);
+}
+.kat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.kat-name{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;flex:1;}
+
+/* 4-column metric row: one col per metric type */
+.metric-cols{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+}
+@media(max-width:639px){.metric-cols{grid-template-columns:1fr 1fr;}}
+@media(min-width:640px) and (max-width:850px){.metric-cols{grid-template-columns:1fr 1fr;}}
+
+.metric-col{
+  padding:12px 14px;
+  border-right:1px solid var(--border);
+}
+.metric-col:last-child{border-right:none;}
+/* On 2-col layout, remove right border on even cols */
+@media(max-width:850px){
+  .metric-col:nth-child(2n){border-right:none;}
+  .metric-col:nth-child(n+3){border-top:1px solid var(--border);}
+}
+
+.mc-header{display:flex;align-items:center;gap:5px;margin-bottom:8px;}
+.mc-icon{font-size:13px;}
+.mc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;font-family:var(--mono);color:var(--text-3);}
+.mc-date{font-size:10px;font-family:var(--mono);color:var(--text-3);margin-top:1px;}
+
+/* The two data points per metric: unit + berat */
+.mc-vals{display:flex;flex-direction:column;gap:4px;}
+.mc-row{display:flex;align-items:baseline;justify-content:space-between;gap:6px;}
+.mc-row-lbl{font-size:10px;color:var(--text-3);font-family:var(--mono);}
+.mc-val{font-family:var(--mono);font-size:15px;font-weight:700;line-height:1;}
+.mc-val.small{font-size:12px;font-weight:500;color:var(--text-2);}
+.mc-val.green{color:var(--green);}
+.mc-val.blue{color:var(--blue);}
+.mc-val.accent{color:var(--accent);}
+.mc-val.purple{color:var(--purple);}
+.mc-val.muted{color:var(--text-3);font-weight:400;font-size:13px;}
+
+/* ══════════════════════════════════════
+   PRODUCT TABLE
+══════════════════════════════════════ */
+.prod-table{width:100%;border-collapse:collapse;}
+.prod-table th{
+  font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--text-3);font-family:var(--mono);
+  padding:0 14px 8px;border-bottom:1px solid var(--border);
+  text-align:left;white-space:nowrap;
+}
+/* Group headers span 2 cols (unit + kg) */
+.prod-table th.th-grp{
+  text-align:center;border-bottom:1px solid var(--border);
+  border-left:2px solid var(--surface2);padding:4px 14px;
+}
+.prod-table th.th-sub{
+  text-align:right;font-size:9px;border-bottom:1px solid var(--border);
+  border-left:1px solid var(--surface2);padding:0 10px 6px;
+}
+.prod-table th.th-sub:first-of-type{border-left:2px solid var(--surface2);}
+.prod-table td{
+  padding:9px 14px;font-size:13px;
+  border-bottom:1px solid var(--surface2);
+  vertical-align:middle;
+}
+.prod-table tr:last-child td{border-bottom:none;}
+.prod-table tr:hover td{background:var(--surface2);}
+.prod-table td.td-num{
+  font-family:var(--mono);font-size:12px;font-weight:600;
+  text-align:right;border-left:1px solid var(--surface2);
+}
+.prod-table td.td-num.grp-start{border-left:2px solid var(--surface2);}
+.prod-table td.td-num.muted{color:var(--text-3);font-weight:400;}
+.prod-table td.td-num.green{color:var(--green);}
+.prod-table td.td-num.blue{color:var(--blue);}
+.prod-table td.td-num.accent{color:var(--accent);}
+.prod-table td.td-num.purple{color:var(--purple);}
+/* kat separator */
+.prod-table tr.kat-sep td{
+  background:var(--surface2);
+  font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;font-family:var(--mono);
+  padding:5px 14px;border-bottom:1px solid var(--border);
+}
+/* total row */
+.prod-table tr.total-row td{
+  background:var(--surface2);font-weight:700;
+  border-top:2px solid var(--border-dark);
+  border-bottom:none;font-size:12px;
+}
+
+/* Mobile product cards */
+.m-prod-kat{margin-bottom:12px;}
+.m-prod-kat:last-child{margin-bottom:0;}
+.m-prod-kat-hd{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+  font-family:var(--mono);padding:7px 14px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius) var(--radius) 0 0;
+  border-bottom:none;
+}
+.m-prod-card-inner{
+  border:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius);
+  overflow:hidden;
+}
+.m-prod-row{padding:11px 14px;border-bottom:1px solid var(--surface2);}
+.m-prod-row:last-child{border-bottom:none;}
+.m-pr-name{font-size:13px;font-weight:700;margin-bottom:1px;}
+.m-pr-sat{font-size:10px;font-family:var(--mono);color:var(--text-3);margin-bottom:8px;}
+/* 4-column mini metric grid */
+.m-pr-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
+@media(max-width:359px){.m-pr-metrics{grid-template-columns:1fr 1fr;gap:6px;}}
+.m-pm{background:var(--surface2);border-radius:var(--radius-sm);padding:6px 8px;}
+.m-pm-icon{font-size:11px;}
+.m-pm-lbl{font-size:9px;font-family:var(--mono);color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.m-pm-unit{font-size:13px;font-weight:700;font-family:var(--mono);line-height:1.1;}
+.m-pm-kg{font-size:10px;font-family:var(--mono);color:var(--text-2);margin-top:1px;}
+
+/* ── Empty ── */
+.empty{padding:40px;text-align:center;color:var(--text-3);font-size:13px;font-style:italic;}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--text);color:#fff;font-size:13px;padding:10px 20px;border-radius:999px;z-index:999;opacity:0;transition:all .22s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+@media(min-width:640px){.toast{bottom:20px;}}
+
+/* nav.css overrides — hide old bottom-nav and mobile header */
+.bottom-nav{display:none!important;}
+.m-header{display:none!important;}
+.mobile-header{display:none!important;}
+</style>
+<style id="mk-layout-fix">
+/* Layout override — sidebar now handled by auth.js */
+.app{display:flex!important;min-height:100vh;}
+.sidebar{position:fixed!important;}
+@media(min-width:1024px){.main{margin-left:210px!important;}}
+@media(min-width:640px) and (max-width:1023px){.main{margin-left:60px!important;}}
+@media(max-width:639px){.main{margin-left:0!important;}}
+/* Remove old grid/mobile patterns */
+.desktop{display:block!important;min-height:unset!important;}
+.mobile-only{display:none!important;}
+</style>
+<!-- responsive-ringkasan.html -->
+<style>
+/* ── Ringkasan responsive — already built-in, minor tweaks ── */
+@media(min-width:640px) and (max-width:1023px){
+  .content{padding:16px 18px 50px!important;}
+  .metric-cols{grid-template-columns:1fr 1fr!important;}
+}
+</style>
+<link rel="stylesheet" href="mk-responsive.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ─── SIDEBAR (filled dynamically) ─── -->
+  <aside class="sidebar" id="d-sidebar"></aside>
+
+  <!-- ─── MAIN ─── -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-title">📊 Ringkasan Harian</div>
+      <div class="topbar-right">
+        <span class="topbar-user" id="d-topbar-user"></span>
+        <!-- mobile avatar (shown < 640px via auth.js) -->
+        <div class="m-av-wrap" id="m-av" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Date picker bar -->
+      <div class="date-bar">
+        <span class="date-bar-lbl">Tanggal</span>
+        <div class="dn">
+          <div class="dn-btn" onclick="moveDate(-1)">‹</div>
+          <input type="date" id="tgl" onchange="onDateChange()">
+          <div class="dn-btn" onclick="moveDate(1)">›</div>
+        </div>
+        <button class="btn-today" onclick="goToday()">Hari ini</button>
+        <span class="date-lbl" id="tgl-lbl"></span>
+      </div>
+
+      <!-- SECTION 1: Per Kategori -->
+      <div class="card">
+        <div class="card-hd">
+          <h2>Per Kategori</h2>
+          <span class="meta" id="kat-meta">—</span>
+        </div>
+        <div id="kat-body"><div class="empty">Memuat...</div></div>
+      </div>
+
+      <!-- SECTION 2: Per Produk -->
+      <div class="card">
+        <div class="card-hd">
+          <h2>Per Produk</h2>
+          <span class="meta" id="prod-meta">—</span>
+        </div>
+        <div id="prod-body"><div class="empty">Memuat...</div></div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Mobile bottom nav -->
+  <div class="bn-item active"><div class="bn-icon">📊</div><div class="bn-lbl">Ringkasan</div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="mk-config.js"></script>
+<script src="auth.js"></script>
+<script src="mk-net.js"></script>
+<script>
+const GAS=MK_CONFIG.GAS;
+
+/* ── Mock data ── */
+
+function jakartaDate(offsetDays=0){
+  const d = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));
+  d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+const _td = jakartaDate();
+const _yd = jakartaDate(-1);
+
+const MOCK_PRODUK=[
+  {id:'1',nama:'MAKARONI PRIMA', kategori:'Makaroni',satuanList:[{satuan:'BALL',berat:5},{satuan:'SAK',berat:25}]},
+  {id:'2',nama:'MAKARONI WIRA',  kategori:'Makaroni',satuanList:[{satuan:'BALL',berat:5}]},
+  {id:'3',nama:'MAKARONI BANTAT',kategori:'Makaroni',satuanList:[{satuan:'BALL',berat:5}]},
+  {id:'4',nama:'LAGO',           kategori:'Lago',    satuanList:[{satuan:'BALL',berat:5},{satuan:'SAK',berat:25}]},
+  {id:'5',nama:'LAGO TERASI',    kategori:'Lago',    satuanList:[{satuan:'BALL',berat:5}]},
+  {id:'6',nama:'CIPIR MERAH',    kategori:'Cipir',   satuanList:[{satuan:'BALL',berat:5}]},
+  {id:'7',nama:'CIPIR PUTIH',    kategori:'Cipir',   satuanList:[{satuan:'BALL',berat:5}]},
+  {id:'8',nama:'JUMBO',          kategori:'Kerupuk', satuanList:[{satuan:'IKAT',berat:0}]},
+  {id:'9',nama:'KIJANG',         kategori:'Kerupuk', satuanList:[{satuan:'IKAT',berat:0}]},
+];
+const MOCK_NOTAS=[
+  {tanggal:_td,itemsParsed:[{nama:'MAKARONI PRIMA',qty:50,satuan:'BALL'},{nama:'LAGO',qty:30,satuan:'BALL'}]},
+  {tanggal:_td,itemsParsed:[{nama:'MAKARONI PRIMA',qty:5,satuan:'SAK'},{nama:'CIPIR MERAH',qty:20,satuan:'BALL'}]},
+  {tanggal:_td,itemsParsed:[{nama:'JUMBO',qty:80,satuan:'IKAT'}]},
+];
+const MOCK_LANGSIRAN=[
+  {tanggal:_td,status:'TERVERIFIKASI',items:[{produk:'MAKARONI PRIMA',berat_kg:30},{produk:'LAGO',berat_kg:50},{produk:'MAKARONI WIRA',berat_kg:25}]},
+  {tanggal:_td,status:'DIKIRIM',items:[{produk:'CIPIR MERAH',berat_kg:20},{produk:'JUMBO',berat_kg:40}]},
+];
+const MOCK_STOCK=[
+  // Yesterday
+  {tanggal:_yd,produk:'MAKARONI PRIMA',satuan:'BALL',qty:120},{tanggal:_yd,produk:'MAKARONI PRIMA',satuan:'SAK',qty:8},
+  {tanggal:_yd,produk:'MAKARONI WIRA', satuan:'BALL',qty:45},
+  {tanggal:_yd,produk:'MAKARONI BANTAT',satuan:'BALL',qty:20},
+  {tanggal:_yd,produk:'LAGO',          satuan:'BALL',qty:60},{tanggal:_yd,produk:'LAGO',satuan:'SAK',qty:4},
+  {tanggal:_yd,produk:'LAGO TERASI',   satuan:'BALL',qty:25},
+  {tanggal:_yd,produk:'CIPIR MERAH',   satuan:'BALL',qty:30},
+  {tanggal:_yd,produk:'CIPIR PUTIH',   satuan:'BALL',qty:15},
+  {tanggal:_yd,produk:'JUMBO',         satuan:'IKAT',qty:200},
+  {tanggal:_yd,produk:'KIJANG',        satuan:'IKAT',qty:150},
+  // Today stock (already entered)
+  {tanggal:_td,produk:'MAKARONI PRIMA',satuan:'BALL',qty:95},{tanggal:_td,produk:'MAKARONI PRIMA',satuan:'SAK',qty:3},
+  {tanggal:_td,produk:'MAKARONI WIRA', satuan:'BALL',qty:55},
+  {tanggal:_td,produk:'MAKARONI BANTAT',satuan:'BALL',qty:20},
+  {tanggal:_td,produk:'LAGO',          satuan:'BALL',qty:50},{tanggal:_td,produk:'LAGO',satuan:'SAK',qty:4},
+  {tanggal:_td,produk:'LAGO TERASI',   satuan:'BALL',qty:25},
+  {tanggal:_td,produk:'CIPIR MERAH',   satuan:'BALL',qty:15},
+  {tanggal:_td,produk:'CIPIR PUTIH',   satuan:'BALL',qty:15},
+  {tanggal:_td,produk:'JUMBO',         satuan:'IKAT',qty:165},
+  {tanggal:_td,produk:'KIJANG',        satuan:'IKAT',qty:148},
+];
+
+let PRODUK=[...MOCK_PRODUK],ALL_NOTAS=[...MOCK_NOTAS],ALL_LANGSIRAN=[...MOCK_LANGSIRAN],ALL_STOCK=[...MOCK_STOCK];
+
+const KAT_COLORS={'Makaroni':'#1A6B45','Lago':'#C4501A','Cipir':'#E24B4A','Kerupuk':'#8B5C00','Lainnya':'#534AB7'};
+const KAT_BG    ={'Makaroni':'#EDF6F1','Lago':'#FDF1EC','Cipir':'#FFF0F0','Kerupuk':'#FEF8EC','Lainnya':'#F0EFFE'};
+
+const METRICS=[
+  {key:'kemarin',  icon:'📦', label:'Stock Kemarin',  cls:'green',  cls2:'purple'},
+  {key:'langsiran',icon:'🚚', label:'Langsiran',      cls:'blue',   cls2:'blue'},
+  {key:'penjualan',icon:'🧾', label:'Penjualan',      cls:'accent', cls2:'accent'},
+  {key:'hariini',  icon:'✅', label:'Stock Hari Ini', cls:'purple', cls2:'purple'},
+];
+
+/* ── Init ── */
+window.addEventListener('DOMContentLoaded',async()=>{
+  MK_AUTH.ensureDemo();
+  const SESS=MK_AUTH.require('login.html',['packaging','admin']);
+  if(!SESS)return;
+  MK_AUTH.initSidebar('ringkasan.html');
+
+  // Show mobile avatar on small screens
+  const mav=document.getElementById('m-av');
+  if(mav){
+    mav.innerHTML=MK_AUTH.renderMobileAvatar();
+    // Show on mobile only
+    if(window.innerWidth<640) mav.style.display='block';
+  }
+
+  document.getElementById('tgl').value=_td;
+  updDateLbl();
+
+  MK_LOADER.show();
+  try{
+    const[dP,dN,dL,dS]=await Promise.all([
+      MK_CACHE.fetch('getProduk',    GAS),
+      MK_CACHE.fetch('getAllNotas',   GAS),
+      MK_CACHE.fetch('getLangsiran', GAS),
+      MK_CACHE.fetch('getStock',     GAS),
+    ]);
+    if(dP.success)PRODUK=dP.produk;
+    if(dN.success)ALL_NOTAS=dN.notas;
+    if(dL.success)ALL_LANGSIRAN=dL.langsiran;
+    if(dS.success)ALL_STOCK=dS.stock;
+  }catch(e){} finally{MK_LOADER.hide();}
+
+  render();
+});
+
+function go(p){window.location.href=p;}
+
+/* ── Date helpers ── */
+function moveDate(d){
+  const inp=document.getElementById('tgl');
+  const dt=new Date(inp.value);dt.setDate(dt.getDate()+d);
+  inp.value=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  onDateChange();
+}
+function goToday(){document.getElementById('tgl').value=_td;onDateChange();}
+function onDateChange(){updDateLbl();render();}
+function updDateLbl(){
+  const v=document.getElementById('tgl').value;
+  const el=document.getElementById('tgl-lbl');
+  if(!el)return;
+  if(v===_td)el.textContent='Hari ini';
+  else if(v===_yd)el.textContent='Kemarin';
+  else el.textContent='';
+}
+
+/* ══════════════════════════════════════
+   COMPUTE
+══════════════════════════════════════ */
+function compute(tgl){
+  // Lookups
+  const prodKat={},prodBerat={};
+  PRODUK.forEach(p=>{
+    prodKat[p.nama]=p.kategori||'Lainnya';
+    (p.satuanList||[]).forEach(s=>{prodBerat[`${p.nama}|${s.satuan||s}`]=s.berat||0;});
+  });
+
+  // Last date before tgl that has stock data
+  const prevDate=[...new Set(ALL_STOCK.filter(s=>s.tanggal<tgl).map(s=>s.tanggal))].sort((a,b)=>b.localeCompare(a))[0]||null;
+  const hasToday=ALL_STOCK.some(s=>s.tanggal===tgl);
+
+  // Langsiran on tgl
+  const langOnDate=ALL_LANGSIRAN.filter(l=>l.tanggal===tgl);
+  // Notas on tgl
+  const notasOnDate=ALL_NOTAS.filter(n=>n.tanggal===tgl);
+
+  // Build per-produk-satuan row
+  const rows={};
+  PRODUK.forEach(p=>{
+    (p.satuanList||[]).forEach(s=>{
+      const sat=s.satuan||s;
+      const bpr=s.berat||0; // kg per unit for this satuan
+      rows[`${p.nama}|${sat}`]={
+        nama:p.nama,sat,kat:prodKat[p.nama],beratPerUnit:bpr,
+        kemarin:{qty:null,kg:null},
+        langsiran:{qty:null,kg:0},   // langsiran tracked in kg only
+        penjualan:{qty:0,kg:0},
+        hariini:{qty:null,kg:null},
+      };
+    });
+  });
+
+  // Stock kemarin
+  if(prevDate){
+    ALL_STOCK.filter(s=>s.tanggal===prevDate).forEach(s=>{
+      const r=rows[`${s.produk}|${s.satuan}`];if(!r)return;
+      r.kemarin.qty=s.qty;
+      r.kemarin.kg=r.beratPerUnit>0?s.qty*r.beratPerUnit:null;
+    });
+  }
+
+  // Stock hari ini
+  if(hasToday){
+    ALL_STOCK.filter(s=>s.tanggal===tgl).forEach(s=>{
+      const r=rows[`${s.produk}|${s.satuan}`];if(!r)return;
+      r.hariini.qty=s.qty;
+      r.hariini.kg=r.beratPerUnit>0?s.qty*r.beratPerUnit:null;
+    });
+  }
+
+  // Penjualan — prioritas itemsArray (dari GAS), fallback itemsParsed
+  notasOnDate.forEach(n=>{
+    const items=n.itemsArray||n.itemsParsed||[];
+    items.forEach(i=>{
+      const nama   = i.produk||i.nama||'';
+      const satuan = i.satuan||'';
+      const r=rows[`${nama}|${satuan}`];if(!r)return;
+      r.penjualan.qty+=(i.qty||0);
+      if(r.beratPerUnit>0)r.penjualan.kg+=(i.qty||0)*r.beratPerUnit;
+    });
+  });
+
+  // Langsiran (kg per produk, distribute to first satuan row)
+  langOnDate.forEach(l=>{
+    (l.items||[]).forEach(i=>{
+      // Find all satuan rows for this produk, assign kg to first
+      const prodRows=Object.values(rows).filter(r=>r.nama===i.produk);
+      if(prodRows.length){prodRows[0].langsiran.kg+=(i.berat_kg||0);}
+    });
+  });
+
+  return {rows,prevDate,hasToday,tgl};
+}
+
+/* ── Number formatters ── */
+const fn=v=>(v!=null&&v>0)?v.toLocaleString('id-ID'):'—';
+const fkg=v=>(v!=null&&v>0)?v.toFixed(1)+' kg':'—';
+const fd=d=>d?new Date(d+'T00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'}):'—';
+
+/* ══════════════════════════════════════
+   RENDER
+══════════════════════════════════════ */
+function render(){
+  const tgl=document.getElementById('tgl').value||_td;
+  const data=compute(tgl);
+  renderKat(data);
+  renderProd(data);
+}
+
+/* ── Per Kategori ── */
+function renderKat({rows,prevDate,hasToday,tgl}){
+  const kats=[...new Set(PRODUK.map(p=>p.kategori||'Lainnya'))];
+
+  // Aggregate
+  const agg={};
+  kats.forEach(k=>{ agg[k]={kemarin:{qty:0,kg:0,has:false},langsiran:{kg:0},penjualan:{qty:0,kg:0},hariini:{qty:0,kg:0,has:false}}; });
+  Object.values(rows).forEach(r=>{
+    const a=agg[r.kat];if(!a)return;
+    if(r.kemarin.qty!=null){a.kemarin.qty+=r.kemarin.qty;if(r.kemarin.kg)a.kemarin.kg+=r.kemarin.kg;a.kemarin.has=true;}
+    if(r.hariini.qty!=null){a.hariini.qty+=r.hariini.qty;if(r.hariini.kg)a.hariini.kg+=r.hariini.kg;a.hariini.has=true;}
+    a.langsiran.kg+=r.langsiran.kg||0;
+    a.penjualan.qty+=r.penjualan.qty||0;
+    if(r.penjualan.kg)a.penjualan.kg+=r.penjualan.kg;
+  });
+
+  const metricDate={kemarin:fd(prevDate),langsiran:fd(tgl),penjualan:fd(tgl),hariini:hasToday?fd(tgl):'Belum input'};
+  const metricCls ={kemarin:'green',langsiran:'blue',penjualan:'accent',hariini:hasToday?'purple':'muted'};
+
+  // One block per kategori
+  let html=kats.map(kat=>{
+    const a=agg[kat];
+    const clr=KAT_COLORS[kat]||'#534AB7';
+    const bg=KAT_BG[kat]||'#F0EFFE';
+
+    const cols=METRICS.map(m=>{
+      const cls=metricCls[m.key];
+      // Determine what to show per metric
+      let unitVal='—', kgVal='';
+      if(m.key==='kemarin'){
+        unitVal=a.kemarin.has?fn(a.kemarin.qty):'—';
+        kgVal=a.kemarin.has&&a.kemarin.kg>0?fkg(a.kemarin.kg):'';
+      } else if(m.key==='langsiran'){
+        unitVal='—'; // langsiran only has kg
+        kgVal=a.langsiran.kg>0?fkg(a.langsiran.kg):'—';
+      } else if(m.key==='penjualan'){
+        unitVal=a.penjualan.qty>0?fn(a.penjualan.qty):'—';
+        kgVal=a.penjualan.kg>0?fkg(a.penjualan.kg):'';
+      } else if(m.key==='hariini'){
+        unitVal=a.hariini.has?fn(a.hariini.qty):'—';
+        kgVal=a.hariini.has&&a.hariini.kg>0?fkg(a.hariini.kg):'';
+      }
+      // For langsiran swap labels
+      const isLang=m.key==='langsiran';
+      return `<div class="metric-col">
+        <div class="mc-header">
+          <span class="mc-icon">${m.icon}</span>
+          <div>
+            <div class="mc-label">${m.label}</div>
+            <div class="mc-date">${metricDate[m.key]}</div>
+          </div>
+        </div>
+        <div class="mc-vals">
+          ${!isLang?`<div class="mc-row">
+            <span class="mc-row-lbl">Unit</span>
+            <span class="mc-val ${unitVal==='—'?'muted':cls}">${unitVal}</span>
+          </div>`:''}
+          <div class="mc-row">
+            <span class="mc-row-lbl">${isLang?'Berat':'Berat'}</span>
+            <span class="mc-val small ${kgVal&&kgVal!=='—'?cls:'muted'}">${kgVal||'—'}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="kat-block">
+      <div class="kat-block-hd" style="background:${bg};">
+        <div class="kat-dot" style="background:${clr};"></div>
+        <span class="kat-name" style="color:${clr};">${kat}</span>
+      </div>
+      <div class="metric-cols">${cols}</div>
+    </div>`;
+  }).join('');
+
+  const el=document.getElementById('kat-body');
+  if(el){el.innerHTML=html||'<div class="empty">Tidak ada data</div>';}
+  const meta=document.getElementById('kat-meta');
+  if(meta)meta.textContent=kats.length+' kategori · '+fd(tgl);
+}
+
+/* ── Per Produk ── */
+function renderProd({rows,prevDate,hasToday,tgl}){
+  const kats=[...new Set(PRODUK.map(p=>p.kategori||'Lainnya'))];
+  const sortedRows=Object.values(rows).sort((a,b)=>{
+    if(a.kat!==b.kat)return kats.indexOf(a.kat)-kats.indexOf(b.kat);
+    return a.nama<b.nama?-1:a.nama>b.nama?1:0;
+  });
+
+  const metricCls={kemarin:'green',langsiran:'blue',penjualan:'accent',hariini:hasToday?'purple':'muted'};
+  const isMobile=window.innerWidth<640;
+
+  const el=document.getElementById('prod-body');
+  const meta=document.getElementById('prod-meta');
+
+  if(!isMobile){
+    // Desktop/tablet: full table with sub-header cols
+    let html=`<div style="overflow-x:auto;"><table class="prod-table">
+    <thead>
+      <tr>
+        <th rowspan="2" style="padding-bottom:12px;">Produk</th>
+        <th rowspan="2" style="padding-bottom:12px;">Satuan</th>
+        <th class="th-grp" colspan="2" style="color:var(--green);">📦 Stock Kemarin<br><span style="font-weight:400;font-size:9px;">${fd(prevDate)||'—'}</span></th>
+        <th class="th-grp" colspan="1" style="color:var(--blue);">🚚 Langsiran<br><span style="font-weight:400;font-size:9px;">${fd(tgl)}</span></th>
+        <th class="th-grp" colspan="2" style="color:var(--accent);">🧾 Penjualan<br><span style="font-weight:400;font-size:9px;">${fd(tgl)}</span></th>
+        <th class="th-grp" colspan="2" style="color:${hasToday?'var(--purple)':'var(--text-3)'};">✅ Stock Hari Ini<br><span style="font-weight:400;font-size:9px;">${hasToday?fd(tgl):'Belum input'}</span></th>
+      </tr>
+      <tr>
+        <th class="th-sub">Unit</th><th class="th-sub">Berat</th>
+        <th class="th-sub" style="border-left:2px solid var(--surface2);">Berat</th>
+        <th class="th-sub" style="border-left:2px solid var(--surface2);">Unit</th><th class="th-sub">Berat</th>
+        <th class="th-sub" style="border-left:2px solid var(--surface2);">Unit</th><th class="th-sub">Berat</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+    let lastKat='';
+    sortedRows.forEach(r=>{
+      if(r.kat!==lastKat){
+        const clr=KAT_COLORS[r.kat]||'#534AB7';
+        html+=`<tr class="kat-sep"><td colspan="10"><span style="color:${clr};">●</span> ${r.kat}</td></tr>`;
+        lastKat=r.kat;
+      }
+      const kC=r.kemarin.qty!=null?'green':'muted';
+      const hC=r.hariini.qty!=null?(hasToday?'purple':'muted'):'muted';
+      const lC=r.langsiran.kg>0?'blue':'muted';
+      const pC=r.penjualan.qty>0?'accent':'muted';
+      html+=`<tr>
+        <td style="font-weight:600;">${r.nama}</td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--text-3);">${r.sat}</td>
+        <td class="td-num ${kC} grp-start">${r.kemarin.qty!=null?fn(r.kemarin.qty):'—'}</td>
+        <td class="td-num ${kC}">${r.kemarin.kg!=null&&r.kemarin.kg>0?fkg(r.kemarin.kg):'—'}</td>
+        <td class="td-num ${lC} grp-start">${r.langsiran.kg>0?fkg(r.langsiran.kg):'—'}</td>
+        <td class="td-num ${pC} grp-start">${r.penjualan.qty>0?fn(r.penjualan.qty):'—'}</td>
+        <td class="td-num ${pC}">${r.penjualan.kg>0?fkg(r.penjualan.kg):'—'}</td>
+        <td class="td-num ${hC} grp-start">${r.hariini.qty!=null?fn(r.hariini.qty):'—'}</td>
+        <td class="td-num ${hC}">${r.hariini.kg!=null&&r.hariini.kg>0?fkg(r.hariini.kg):'—'}</td>
+      </tr>`;
+    });
+    html+='</tbody></table></div>';
+    if(el)el.innerHTML=html;
+  } else {
+    // Mobile: card per kategori
+    const byKat={};
+    sortedRows.forEach(r=>{ if(!byKat[r.kat])byKat[r.kat]=[]; byKat[r.kat].push(r); });
+    let html='';
+    Object.entries(byKat).forEach(([kat,rws])=>{
+      const clr=KAT_COLORS[kat]||'#534AB7';
+      const prodRows=rws.map(r=>{
+        const mItems=[
+          {icon:'📦',lbl:'Stk Kmrn',    unit:r.kemarin.qty!=null?fn(r.kemarin.qty):'—',  kg:r.kemarin.kg>0?fkg(r.kemarin.kg):'', cls:r.kemarin.qty!=null?'green':'muted'},
+          {icon:'🚚',lbl:'Langsiran',   unit:'—',                                          kg:r.langsiran.kg>0?fkg(r.langsiran.kg):'—', cls:r.langsiran.kg>0?'blue':'muted'},
+          {icon:'🧾',lbl:'Penjualan',  unit:r.penjualan.qty>0?fn(r.penjualan.qty):'—',   kg:r.penjualan.kg>0?fkg(r.penjualan.kg):'', cls:r.penjualan.qty>0?'accent':'muted'},
+          {icon:'✅',lbl:'Stk Hari Ini',unit:r.hariini.qty!=null?fn(r.hariini.qty):'—',   kg:r.hariini.kg>0?fkg(r.hariini.kg):'', cls:r.hariini.qty!=null?(hasToday?'purple':'muted'):'muted'},
+        ];
+        return `<div class="m-prod-row">
+          <div class="m-pr-name">${r.nama}</div>
+          <div class="m-pr-sat">${r.sat}</div>
+          <div class="m-pr-metrics">${mItems.map(m=>`
+            <div class="m-pm">
+              <div class="m-pm-lbl">${m.icon} ${m.lbl}</div>
+              <div class="m-pm-unit" style="color:var(--${m.cls==='muted'?'text-3':m.cls})">${m.unit}</div>
+              ${m.kg?`<div class="m-pm-kg">${m.kg}</div>`:''}
+            </div>`).join('')}
+          </div>
+        </div>`;
+      }).join('');
+      html+=`<div class="m-prod-kat">
+        <div class="m-prod-kat-hd" style="color:${clr};">● ${kat}</div>
+        <div class="m-prod-card-inner">${prodRows}</div>
+      </div>`;
+    });
+    if(el)el.innerHTML=html||'<div class="empty">Tidak ada data</div>';
+  }
+
+  if(meta)meta.textContent=sortedRows.length+' produk';
+}
+
+function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2800);}
+
+// Re-render produk table on window resize (switch between mobile/desktop layout)
+let _resizeTimer;
+window.addEventListener('resize',()=>{clearTimeout(_resizeTimer);_resizeTimer=setTimeout(()=>{
+  const tgl=document.getElementById('tgl').value||_td;
+  renderProd(compute(tgl));
+  // show/hide mobile avatar
+  const mav=document.getElementById('m-av');
+  if(mav)mav.style.display=window.innerWidth<640?'block':'none';
+},150);});
+</script>
+<script src="mk-responsive.js"></script>
+</body>
+</html>

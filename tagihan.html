@@ -1,0 +1,1999 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tagihan — CV. Miki Kijang</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F2ED;--surface:#FFF;--surface2:#F0EDE8;
+  --border:#D9D4CC;--border-dark:#2D2926;
+  --text:#1A1714;--text-2:#6B6560;--text-3:#9E9891;
+  --accent:#C4501A;--accent-bg:#FDF1EC;--accent-border:#E8B09A;
+  --green:#1A6B45;--green-bg:#EDF6F1;--green-border:#9FE1CB;
+  --amber:#8B5C00;--amber-bg:#FEF8EC;--amber-border:#D4A843;
+  --blue:#185FA5;--blue-bg:#E6F1FB;--blue-border:#B5D4F4;
+  --radius:10px;--radius-sm:6px;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+.app{display:grid;grid-template-columns:210px 1fr;min-height:100vh;}
+
+/* Sidebar */
+.sidebar{background:var(--text);padding:28px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+.sidebar-logo{padding:0 20px 22px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:10px;}
+.brand{font-family:var(--mono);font-size:13px;font-weight:500;color:rgba(255,255,255,.9);letter-spacing:.05em;text-transform:uppercase;}
+.sub{font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;font-family:var(--mono);}
+.nav-section{padding:0 10px;margin-bottom:2px;}
+.nav-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.22);padding:10px 8px 5px;font-family:var(--mono);}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--radius-sm);color:rgba(255,255,255,.45);font-size:13px;cursor:pointer;transition:all .15s;}
+.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.8);}
+.nav-item.active{background:var(--accent);color:#fff;font-weight:500;}
+.nav-icon{font-size:14px;width:16px;text-align:center;}
+.sidebar-footer{margin-top:auto;padding:14px 20px 0;border-top:1px solid rgba(255,255,255,.07);}
+.sidebar-date{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.25);line-height:1.7;}
+
+/* Main */
+.main{display:flex;flex-direction:column;min-height:100vh;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;}
+.topbar-title{font-size:14px;font-weight:600;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+
+/* Page tabs */
+.page-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 28px;background:var(--surface);}
+.page-tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;display:flex;align-items:center;gap:6px;}
+.page-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-count{font-size:10px;font-family:var(--mono);background:var(--surface2);border-radius:999px;padding:1px 7px;color:var(--text-3);}
+
+/* Pages */
+.page{display:none;padding:22px 26px 60px;}
+.page.active{display:block;}
+
+/* Two col layout */
+.two-col{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start;}
+.left-col{display:flex;flex-direction:column;gap:16px;}
+.right-col{position:sticky;top:70px;display:flex;flex-direction:column;gap:16px;}
+
+/* Card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.card-header{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.card-header h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);}
+.card-header .meta{font-size:11px;color:var(--text-3);font-family:var(--mono);}
+.card-body{padding:18px;}
+
+/* Fields */
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:10px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);}
+.field label .req{color:var(--accent);}
+input,select,textarea{font-family:var(--sans);font-size:13px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 11px;width:100%;outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;appearance:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--border-dark);box-shadow:0 0 0 3px rgba(29,23,20,.06);}
+input::placeholder,textarea::placeholder{color:var(--text-3);}
+textarea{resize:vertical;min-height:68px;}
+.sel{position:relative;}
+.sel::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;font-size:11px;}
+.sel select{padding-right:28px;cursor:pointer;}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+/* Autocomplete */
+.ac{position:relative;}
+.ac-list{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 8px 20px rgba(0,0,0,.12);z-index:999;max-height:200px;overflow-y:auto;display:none;}
+.ac-list.open{display:block;}
+.ac-item{padding:8px 11px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:space-between;}
+.ac-item:hover{background:var(--surface2);}
+
+/* ── Nota selector — redesigned ── */
+.nota-toolbar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border);}
+.nota-toolbar label{font-size:12px;color:var(--text-2);cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none;}
+.nota-toolbar .chk-all{width:18px;height:18px;accent-color:var(--accent);cursor:pointer;border-radius:4px;}
+.nota-sel-info{margin-left:auto;font-size:11px;font-family:var(--mono);color:var(--text-3);}
+.nota-sel-total{font-weight:600;color:var(--accent);font-family:var(--mono);}
+
+/* Nota card grid */
+.nota-grid{display:flex;flex-direction:column;gap:0;max-height:400px;overflow-y:auto;}
+.nota-card{display:grid;grid-template-columns:44px 1fr auto;gap:0;border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer;}
+.nota-card:last-child{border-bottom:none;}
+.nota-card:hover{background:#FBF9F7;}
+.nota-card.selected{background:var(--accent-bg);}
+
+/* Checkbox col */
+.nota-chk-col{display:flex;align-items:center;justify-content:center;padding:14px 0 14px 14px;}
+.nota-chk{width:20px;height:20px;border:2px solid var(--border);border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;background:var(--surface);}
+.nota-card.selected .nota-chk{background:var(--accent);border-color:var(--accent);}
+.nota-chk svg{display:none;}
+.nota-card.selected .nota-chk svg{display:block;}
+
+/* Info col */
+.nota-info-col{padding:12px 12px 12px 10px;}
+.nota-top-row{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+.nota-number{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text);}
+.nota-date-lbl{font-size:11px;color:var(--text-3);font-family:var(--mono);}
+.nota-client-lbl{font-size:12px;color:var(--text-2);font-weight:500;}
+.nota-items-lbl{font-size:11px;color:var(--text-3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px;}
+
+/* Total col */
+.nota-total-col{padding:12px 14px 12px 0;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px;}
+.nota-total-val{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text);}
+.nota-group-badge{font-size:10px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:var(--text-3);}
+.nota-card.selected .nota-group-badge{background:rgba(196,80,26,.08);border-color:var(--accent-border);color:var(--accent);}
+
+.nota-empty-state{padding:32px;text-align:center;color:var(--text-3);font-size:13px;}
+
+/* ── Kredit selector ── */
+.kredit-section{margin-bottom:14px;}
+.kredit-header{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-2);font-family:var(--mono);margin-bottom:8px;}
+.kredit-card{display:grid;grid-template-columns:36px 1fr auto;gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;transition:all .15s;background:var(--surface);overflow:hidden;}
+.kredit-card:last-child{margin-bottom:0;}
+.kredit-card:hover{border-color:var(--green-border);background:var(--green-bg);}
+.kredit-card.selected{border-color:var(--green);background:var(--green-bg);}
+.kredit-chk-col{display:flex;align-items:center;justify-content:center;}
+.kredit-chk{width:18px;height:18px;border:2px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.kredit-card.selected .kredit-chk{background:var(--green);border-color:var(--green);}
+.kredit-card.selected .kredit-chk svg{display:block;}
+.kredit-chk svg{display:none;}
+.kredit-info{padding:10px 8px;}
+.kredit-from{font-size:12px;font-weight:500;color:var(--text);}
+.kredit-sub{font-size:11px;color:var(--text-3);font-family:var(--mono);}
+.kredit-amount{padding:10px 12px 10px 0;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--green);display:flex;align-items:center;}
+.kredit-total-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius-sm);font-size:12px;font-family:var(--mono);color:var(--green);margin-top:8px;}
+
+/* ── Pembayaran rows ── */
+.bayar-head{display:grid;grid-template-columns:110px 1fr 1fr 90px 28px;gap:8px;padding-bottom:7px;border-bottom:1px solid var(--border);margin-bottom:6px;}
+.bayar-head span{font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;}
+.bayar-row{display:grid;grid-template-columns:110px 1fr 1fr 90px 28px;gap:8px;align-items:center;margin-bottom:6px;animation:up .15s ease;}
+.bayar-row input,.bayar-row select{padding:7px 9px;font-size:13px;}
+.rp-w{position:relative;}
+.rp-w span{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text-3);font-family:var(--mono);pointer-events:none;}
+.rp-w input{padding-left:24px;font-family:var(--mono);text-align:right;}
+.rm{background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;line-height:1;border-radius:4px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;}
+.rm:hover{color:#A32D2D;}
+.add-btn{display:flex;align-items:center;gap:6px;background:none;border:1px dashed var(--border);border-radius:var(--radius-sm);color:var(--text-2);font-size:12px;font-family:var(--sans);padding:6px 12px;cursor:pointer;width:100%;margin-top:4px;transition:all .14s;}
+.add-btn:hover{border-color:var(--border-dark);color:var(--text);background:var(--surface2);}
+
+/* ── Ringkasan ── */
+.sum-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+.sum-row:last-of-type{border-bottom:none;}
+.sum-lbl{font-size:12px;color:var(--text-2);font-family:var(--mono);}
+.sum-val{font-size:13px;font-family:var(--mono);font-weight:500;}
+.sum-val.green{color:var(--green);}
+.sum-val.red{color:var(--accent);}
+.sum-val.blue{color:var(--blue);}
+.total-box{background:var(--text);border-radius:var(--radius-sm);padding:14px 16px;margin-top:12px;display:flex;align-items:center;justify-content:space-between;}
+.total-box .t-lbl{font-size:11px;color:rgba(255,255,255,.5);font-family:var(--mono);}
+.total-box .t-val{font-size:18px;font-weight:600;font-family:var(--mono);color:#fff;}
+.status-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-family:var(--mono);font-weight:500;padding:5px 12px;border-radius:999px;margin-top:10px;width:100%;justify-content:center;}
+.s-lunas{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.s-pending{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);}
+.s-kredit{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border);}
+.s-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+/* Action buttons */
+.btn{font-family:var(--sans);font-size:13px;font-weight:500;padding:9px 20px;border-radius:var(--radius-sm);border:1px solid transparent;cursor:pointer;transition:all .14s;display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;}
+.btn-primary{background:var(--text);color:#fff;}
+.btn-primary:hover{background:#2D2926;}
+.btn-primary:active{transform:scale(.98);}
+.btn-primary:disabled{background:var(--border);cursor:not-allowed;color:var(--text-3);}
+.btn-ghost{background:transparent;border-color:var(--border);color:var(--text-2);margin-top:8px;}
+.btn-ghost:hover{background:var(--surface2);color:var(--text);}
+.btn-sm{padding:5px 12px;font-size:12px;width:auto;}
+
+/* ── Daftar tagihan ── */
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:0;flex-wrap:wrap;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);}
+.filter-bar input{max-width:260px;}
+.filter-bar .sel{min-width:130px;}
+/* Daftar: card rows instead of table */
+.tag-table{width:100%;border-collapse:collapse;}
+.tag-table thead tr{background:var(--surface2);}
+.tag-table th{text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-family:var(--mono);padding:8px 16px;border-bottom:2px solid var(--border-dark);white-space:nowrap;}
+.tag-table tbody tr{background:var(--surface);border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer;}
+.tag-table tbody tr:hover{background:var(--accent-bg);}
+.tag-table tbody tr.active-row{background:var(--accent-bg);border-left:3px solid var(--accent);}
+.tag-table td{padding:12px 16px;font-size:13px;vertical-align:middle;}
+.tag-table td:first-child{border-left:3px solid transparent;}
+.tag-table tbody tr.active-row td:first-child{border-left:3px solid var(--accent);}
+.mono{font-family:var(--mono);}
+.tag-empty{padding:32px;text-align:center;color:var(--text-3);font-size:13px;font-style:italic;}
+.sbadge{display:inline-block;font-size:10px;font-weight:500;font-family:var(--mono);padding:2px 9px;border-radius:999px;}
+.sb-lunas{background:var(--green-bg);color:var(--green);}
+.sb-pending{background:var(--amber-bg);color:var(--amber);}
+.sb-kredit{background:var(--blue-bg);color:var(--blue);}
+
+/* ── Edit modal ── */
+.modal-bd{position:fixed;inset:0;background:rgba(26,23,20,.45);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;}
+.modal-bd.open{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius);width:100%;max-width:680px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:up .2s ease;}
+.modal-hd{padding:15px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-hd h3{font-size:14px;font-weight:600;}
+.modal-x{background:none;border:none;font-size:20px;color:var(--text-3);cursor:pointer;line-height:1;}
+.modal-x:hover{color:var(--text);}
+.modal-inner{padding:20px;display:flex;flex-direction:column;gap:16px;max-height:75vh;overflow-y:auto;}
+.modal-ft{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+.modal-ft .btn{width:auto;padding:8px 20px;}
+.section-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-family:var(--mono);padding-bottom:8px;border-bottom:1px solid var(--border);}
+
+/* Client info strip in ringkasan */
+.client-strip{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;display:none;}
+.client-strip.show{display:block;}
+.client-strip .cn{font-weight:600;font-size:13px;}
+.client-strip .ck{font-size:11px;color:var(--text-3);font-family:var(--mono);margin-top:2px;}
+
+.toast{position:fixed;bottom:22px;right:22px;background:var(--text);color:#fff;font-size:13px;padding:11px 16px;border-radius:var(--radius);display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.13);transform:translateY(70px);opacity:0;transition:all .3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.ok{border-left:3px solid #4CAF82;}
+.toast.err{border-left:3px solid var(--accent);}
+
+@keyframes up{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── Adaptive ── */
+.mobile-header{display:none;}
+.bottom-nav{display:none;}
+@media(max-width:639px){
+  .app{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+  .topbar{display:none;}
+  .mobile-header{display:flex;position:sticky;top:0;z-index:30;background:var(--text);height:52px;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;}
+  .mobile-header-title{font-size:15px;font-weight:600;color:#fff;}
+  .page-tabs{padding:0 4px;}
+  .page-tab{padding:10px 12px;font-size:12px;}
+  /* Buat tagihan: stack cols */
+  .two-col{grid-template-columns:1fr!important;}
+  /* Daftar: full-width, no right pane */
+  #page-daftar > div{grid-template-columns:1fr!important;height:auto!important;overflow:visible!important;}
+  #detail-pane{display:none!important;}
+  .detail-sheet-mobile{display:flex;}
+  /* Daftar filter bar compact */
+  .filter-bar{gap:8px;margin-bottom:0;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);}
+  .filter-bar input{max-width:100%!important;width:100%;}
+  /* Tag table → card rows on mobile */
+  .tag-table{display:block;}
+  .tag-table thead{display:none;}
+  .tag-table tbody{display:block;}
+  .tag-table tr{display:flex;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--border);gap:4px;cursor:pointer;background:var(--surface);}
+  .tag-table tr:active{background:var(--surface2);}
+  .tag-table td{display:block;padding:0;border:none;}
+  /* Mobile card row layout via nth-child targeting */
+  .tag-table td:nth-child(1){width:100%;font-size:13px;font-weight:600;font-family:var(--mono);margin-bottom:2px;}
+  .tag-table td:nth-child(2){flex:1;font-size:12px;color:var(--text-2);}
+  .tag-table td:nth-child(3){display:none;} /* hide date col - shown in col1 sub */
+  .tag-table td:nth-child(4){font-family:var(--mono);font-size:12px;font-weight:600;margin-left:auto;}
+  .tag-table td:nth-child(5){font-family:var(--mono);font-size:12px;font-weight:700;min-width:80px;text-align:right;}
+  .tag-table td:nth-child(6){width:100%;margin-top:4px;}
+  /* Bottom nav */
+  .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;height:56px;background:var(--surface);border-top:1px solid var(--border);z-index:30;}
+  .bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--text-3);font-size:10px;font-family:var(--mono);}
+  .bn-item.active{color:var(--accent);}
+  .bn-icon{font-size:18px;line-height:1;}
+  .main{padding-bottom:64px;}
+  /* Payments row */
+  .bayar-row{grid-template-columns:1fr 1fr!important;gap:6px!important;}
+  .bayar-row .rm{grid-column:2;justify-self:end;}
+  .bayar-head{display:none;}
+  /* Edit modal: full-screen, 1 col stacked */
+  #modal-edit .modal{max-width:100%!important;border-radius:18px 18px 0 0;height:95vh;overflow:hidden;display:flex;flex-direction:column;}
+  #modal-edit .modal > div[style*="grid-template-columns:1fr 360px"]{grid-template-columns:1fr!important;height:auto!important;overflow-y:auto;max-height:80vh;}
+  #modal-edit .modal > div[style*="grid-template-columns:1fr 360px"] > div:first-child{border-right:none!important;border-bottom:1px solid var(--border);}
+  #modal-edit .modal > div[style*="grid-template-columns:1fr 360px"] > div:last-child{border-left:none!important;height:300px!important;}
+  /* Combine modal */
+  #modal-combine .modal{max-width:100%!important;border-radius:18px 18px 0 0;}
+  .f3{grid-template-columns:1fr!important;}
+}
+@media(min-width:640px) and (max-width:899px){
+  .app{grid-template-columns:64px 1fr;}
+  .sidebar{padding:16px 0;}
+  .sidebar-logo,.nav-label,.nav-item span:not(.nav-icon),.sidebar-footer{display:none;}
+  .sidebar{width:64px;align-items:center;}
+  .nav-item{justify-content:center;padding:10px;width:44px;}
+  .nav-icon{width:auto;font-size:18px;}
+  .two-col{grid-template-columns:1fr 300px;}
+  #page-daftar > div{grid-template-columns:1fr 300px!important;}
+  #modal-edit .modal{max-width:98vw;}
+  #modal-edit .modal > div[style*="grid-template-columns:1fr 360px"]{grid-template-columns:1fr 300px!important;}
+}
+
+/* Mobile detail sheet */
+.detail-sheet-mobile{display:none;position:fixed;inset:0;z-index:150;background:rgba(26,23,20,.5);align-items:flex-end;}
+.detail-sheet-mobile.open{display:flex;}
+.detail-sheet-inner{background:var(--surface);border-radius:18px 18px 0 0;width:100%;max-height:90vh;display:flex;flex-direction:column;animation:slideUp .25s ease;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.ds-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0;flex-shrink:0;}
+.ds-hd{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ds-body{overflow-y:auto;flex:1;}
+
+
+</style>
+
+<script src="mk-config.js"></script>
+<script src="auth.js"></script>
+<script src="mk-net.js"></script>
+<style id="mk-layout-fix">
+.app{display:flex!important;min-height:100vh;}
+.sidebar{position:fixed!important;top:0;left:0;bottom:0;}
+@media(min-width:1024px){.main{margin-left:210px!important;}}
+@media(min-width:640px) and (max-width:1023px){.main{margin-left:60px!important;}}
+@media(max-width:639px){.main{margin-left:0!important;}}
+.bottom-nav{display:none!important;}
+.m-header{display:none!important;}
+</style>
+<link rel="stylesheet" href="mk-responsive.css">
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" id="d-sidebar"></aside>
+
+<main class="main">
+  <!-- Mobile header -->
+  <div class="mobile-header">
+    <div class="mobile-header-title">📄 Tagihan & Bayar</div>
+    <button onclick="resetForm()" style="background:rgba(255,255,255,.12);border:none;color:#fff;font-size:12px;padding:5px 10px;border-radius:6px;cursor:pointer;">Reset</button>
+  </div>
+  <div class="topbar">
+    <div class="topbar-title">📄 Tagihan & Bayar</div>
+      <div class="topbar-user" id="d-topbar-user" style="font-size:12px;color:var(--text-3);font-family:\'DM Mono\',monospace;"></div>
+    <div class="topbar-right"><div id="m-av" style="display:inline-flex;"></div>
+      <button class="btn btn-ghost btn-sm" onclick="resetForm()">Reset Form</button>
+    </div>
+  </div>
+
+  <div class="page-tabs">
+    <div class="page-tab active" id="tab-buat" onclick="switchPage('buat')">Buat Tagihan</div>
+    <div class="page-tab" id="tab-daftar" onclick="switchPage('daftar')">
+      Daftar Tagihan
+      <span class="tab-count" id="daftar-count">0</span>
+    </div>
+  </div>
+
+  <!-- ═══ PAGE: BUAT TAGIHAN ═══ -->
+  <div class="page active" id="page-buat">
+    <div class="two-col">
+      <div class="left-col">
+
+        <!-- Step 1: Pelanggan & Info Tagihan -->
+        <div class="card">
+          <div class="card-header">
+            <h2>1 — Info Tagihan</h2>
+            <span class="meta" id="client-meta-top">belum dipilih</span>
+          </div>
+          <div class="card-body">
+            <div class="f2" style="margin-bottom:12px;">
+              <div class="field">
+                <label>Nama Pelanggan <span class="req">*</span></label>
+                <div class="ac">
+                  <input type="text" id="f-client" placeholder="Ketik nama pelanggan..."
+                    autocomplete="off" oninput="acFilter(this.value)"
+                    onfocus="acFilter(this.value)" onblur="setTimeout(acClose,150)">
+                  <div class="ac-list" id="ac-list"></div>
+                </div>
+              </div>
+              <div class="field">
+                <label>Tanggal Tagihan <span class="req">*</span></label>
+                <input type="date" id="f-tanggal" onchange="onTanggalChange()">
+              </div>
+            </div>
+            <div class="field">
+              <label>No. Tagihan <span class="req">*</span></label>
+              <input type="text" id="f-notag" placeholder="Otomatis setelah pilih pelanggan"
+                style="font-family:var(--mono);">
+            </div>
+            <!-- Deposit toggle -->
+            <div style="margin-top:14px;padding:12px 14px;background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+              <div>
+                <div style="font-size:13px;font-weight:500;color:var(--blue);">Mode Deposit / DP</div>
+                <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Aktifkan jika pelanggan membayar dahulu sebelum ada nota. Tidak perlu memilih nota — langsung masuk sebagai Kredit.</div>
+              </div>
+              <label style="position:relative;display:inline-flex;align-items:center;cursor:pointer;flex-shrink:0;">
+                <input type="checkbox" id="f-deposit" onchange="onDepositToggle()" style="opacity:0;width:0;height:0;position:absolute;">
+                <span id="deposit-track" style="width:36px;height:20px;background:var(--border);border-radius:10px;transition:background .2s;display:inline-block;position:relative;">
+                  <span id="deposit-thumb" style="position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Pilih Nota -->
+        <!-- 2a: Nota pelanggan sendiri -->
+        <div class="card" id="nota-own-card">
+          <div class="card-header">
+            <h2>2 — Pilih Nota</h2>
+            <span class="meta" id="nota-sel-meta" style="color:var(--accent);">0 nota · Rp 0</span>
+          </div>
+          <div class="nota-toolbar">
+            <div style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;" onclick="toggleAll('nota-grid')">
+              <div id="chk-all-box" style="width:18px;height:18px;border:2px solid var(--border);border-radius:4px;background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;">
+                <svg id="chk-all-tick" width="11" height="9" viewBox="0 0 11 9" fill="none" style="display:none;">
+                  <path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span style="font-size:12px;color:var(--text-2);">Pilih semua</span>
+            </div>
+            <span class="nota-sel-info" id="nota-own-lbl"></span>
+          </div>
+          <div class="nota-grid" id="nota-grid">
+            <div class="nota-empty-state">Pilih pelanggan terlebih dahulu</div>
+          </div>
+        </div>
+
+        <!-- 2b: Nota dari grouping (hanya muncul bila pelanggan punya grup) -->
+        <div class="card" id="nota-group-card" style="display:none;">
+          <div class="card-header">
+            <h2>Nota Grouping</h2>
+            <span class="meta" id="nota-group-meta" style="color:var(--accent);">0 nota · Rp 0</span>
+          </div>
+          <div class="nota-toolbar">
+            <div style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;" onclick="toggleAll('nota-group-grid')">
+              <div id="chk-all-box-grp" style="width:18px;height:18px;border:2px solid var(--border);border-radius:4px;background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;">
+                <svg id="chk-all-tick-grp" width="11" height="9" viewBox="0 0 11 9" fill="none" style="display:none;">
+                  <path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span style="font-size:12px;color:var(--text-2);">Pilih semua</span>
+            </div>
+            <span class="nota-sel-info" id="nota-group-lbl"></span>
+          </div>
+          <div class="nota-grid" id="nota-group-grid">
+            <div class="nota-empty-state">Tidak ada nota grouping</div>
+          </div>
+        </div>
+
+        <!-- Step 3: Kredit (hanya muncul jika ada kredit) -->
+        <div class="card" id="kredit-card" style="display:none;">
+          <div class="card-header">
+            <h2>3 — Gunakan Kredit</h2>
+            <span class="meta">pilih kredit yang ingin digunakan</span>
+          </div>
+          <div class="card-body">
+            <div id="kredit-list"></div>
+            <div class="kredit-total-row" id="kredit-total-row" style="display:none;">
+              <span>Total kredit dipilih</span>
+              <span id="kredit-total-val">Rp 0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Pembayaran -->
+        <div class="card">
+          <div class="card-header">
+            <h2 id="bayar-step-lbl">3 — Data Pembayaran</h2>
+            <span class="meta" style="color:var(--text-3);">opsional — bisa diisi nanti</span>
+          </div>
+          <div class="card-body">
+            <div class="bayar-head">
+              <span>Cara Bayar</span>
+              <span>Jumlah (Rp)</span>
+              <span>Keterangan</span>
+              <span>Tgl / Jatuh Tempo</span>
+              <span></span>
+            </div>
+            <div id="bayar-list"></div>
+            <button class="add-btn" onclick="addBayarRow()">＋ &nbsp;Tambah Pembayaran</button>
+            <div class="field" style="margin-top:16px;">
+              <label>Catatan</label>
+              <textarea id="f-catatan" placeholder="Catatan untuk tagihan ini..."></textarea>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /left-col -->
+
+      <!-- RIGHT: Ringkasan -->
+      <div class="right-col">
+        <div class="card">
+          <div class="card-header"><h2>Ringkasan</h2></div>
+          <div class="card-body">
+            <div class="client-strip" id="client-strip">
+              <div class="cn" id="ri-nama">—</div>
+              <div class="ck" id="ri-kota">—</div>
+            </div>
+            <div class="sum-row">
+              <span class="sum-lbl">Jumlah Nota</span>
+              <span class="sum-val" id="r-jml">0 nota</span>
+            </div>
+            <div class="sum-row">
+              <span class="sum-lbl">Periode</span>
+              <span class="sum-val" id="r-periode" style="font-size:11px;text-align:right;max-width:160px;">—</span>
+            </div>
+            <div class="sum-row">
+              <span class="sum-lbl">Total Tagihan</span>
+              <span class="sum-val" id="r-tagihan">Rp 0</span>
+            </div>
+            <div class="sum-row">
+              <span class="sum-lbl">Kredit Digunakan</span>
+              <span class="sum-val green" id="r-kredit-used">—</span>
+            </div>
+            <div class="sum-row">
+              <span class="sum-lbl">Pembayaran</span>
+              <span class="sum-val green" id="r-bayar">—</span>
+            </div>
+            <div class="sum-row" style="border-bottom:none;">
+              <span class="sum-lbl" id="r-sisa-lbl">Sisa Tagihan</span>
+              <span class="sum-val" id="r-sisa">Rp 0</span>
+            </div>
+            <div class="total-box">
+              <span class="t-lbl" id="r-total-lbl">SISA TAGIHAN</span>
+              <span class="t-val" id="r-total">Rp 0</span>
+            </div>
+            <div class="status-badge s-pending" id="r-status">
+              <span class="s-dot"></span>
+              <span id="r-status-text">PENDING</span>
+            </div>
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:0;">
+              <button class="btn btn-primary" id="btn-simpan" onclick="saveTagihan()" disabled>
+                Simpan Tagihan
+              </button>
+              <button class="btn btn-ghost" onclick="resetForm()">Reset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /page-buat -->
+
+  <!-- ═══ PAGE: DAFTAR TAGIHAN ═══ -->
+  <div class="page" id="page-daftar">
+    <div style="display:grid;grid-template-columns:1fr 400px;height:calc(100vh - 100px);overflow:hidden;">
+
+      <!-- LEFT: filter + tagihan list -->
+      <div style="display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;">
+        <div class="filter-bar" style="flex-shrink:0;">
+          <input type="text" id="filter-q" placeholder="Cari no. tagihan, nota..."
+            oninput="renderDaftar()" style="flex:1;max-width:200px;">
+          <input type="text" id="filter-plg" placeholder="Filter pelanggan..."
+            oninput="renderDaftar()" style="flex:1;max-width:200px;">
+          <div class="sel" style="position:relative;min-width:130px;">
+            <select id="filter-status" onchange="renderDaftar()">
+              <option value="">Semua Status</option>
+              <option value="PENDING">PENDING</option>
+              <option value="LUNAS">LUNAS</option>
+              <option value="KREDIT">KREDIT</option>
+            </select>
+            <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;font-size:11px">▾</span>
+          </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;">
+          <table class="tag-table" style="min-width:0;table-layout:fixed;width:100%;">
+            <thead>
+              <tr>
+                <th style="width:38%">No. Tagihan · Pelanggan</th>
+                <th style="width:20%;text-align:right">Tagihan</th>
+                <th style="width:22%;text-align:right">Sisa / Kredit</th>
+                <th style="width:20%">Status</th>
+              </tr>
+            </thead>
+            <tbody id="daftar-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT: detail panel -->
+      <div id="detail-pane" style="overflow-y:auto;background:var(--bg);">
+        <div style="padding:48px 24px;text-align:center;color:var(--text-3);">
+          <div style="font-size:28px;margin-bottom:10px;">📄</div>
+          <p style="font-size:13px;">Klik tagihan untuk melihat detail</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- ═══ MODAL: Edit Tagihan ═══ -->
+<div class="modal-bd" id="modal-edit" onclick="if(event.target===this)closeEdit()">
+  <div class="modal" style="max-width:1100px;">
+    <div class="modal-hd">
+      <div>
+        <h3>Edit Tagihan</h3>
+        <div style="font-size:11px;color:var(--text-3);margin-top:2px;font-family:var(--mono);" id="e-notag-sub">—</div>
+      </div>
+      <button class="modal-x" onclick="closeEdit()">×</button>
+    </div>
+
+    <!-- 2-col: left=info+payment (flexible), right=nota (fixed) -->
+    <div style="display:grid;grid-template-columns:1fr 360px;height:clamp(420px, 72vh, 680px);">
+
+      <!-- LEFT: info + payment -->
+      <div style="border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;">
+        <!-- Scrollable content -->
+        <div style="flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div class="section-lbl">Info Tagihan</div>
+          <div class="f3">
+            <div class="field"><label>No. Tagihan</label><input type="text" id="e-notag" style="font-family:var(--mono);"></div>
+            <div class="field"><label>Pelanggan</label><input type="text" id="e-client" readonly style="background:var(--surface2);color:var(--text-3);"></div>
+            <div class="field"><label>Tanggal</label><input type="date" id="e-tanggal"></div>
+          </div>
+
+          <div class="section-lbl">Pembayaran</div>
+          <div class="bayar-head"><span>Cara Bayar</span><span>Jumlah (Rp)</span><span>Keterangan</span><span>Tgl</span><span></span></div>
+          <div id="e-bayar-list"></div>
+          <button class="add-btn" onclick="addEditBayarRow()">＋ &nbsp;Tambah Pembayaran</button>
+
+          <!-- Kredit tersedia -->
+          <div id="e-kredit-section" style="display:none;">
+            <div class="section-lbl" style="margin-top:4px;">Kredit Tersedia</div>
+            <div id="e-kredit-list"></div>
+          </div>
+
+          <div class="field"><label>Catatan</label><textarea id="e-catatan" rows="2"></textarea></div>
+        </div>
+        <!-- Total bar — always visible, OUTSIDE scroll -->
+        <div style="flex-shrink:0;border-top:1px solid var(--border);background:var(--surface2);">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border);">
+            <div style="padding:10px 16px;border-right:1px solid var(--border);">
+              <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Total Tagihan</div>
+              <div style="font-size:15px;font-weight:700;font-family:var(--mono);" id="e-total-preview">Rp 0</div>
+            </div>
+            <div style="padding:10px 16px;border-right:1px solid var(--border);">
+              <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Total Bayar</div>
+              <div style="font-size:15px;font-weight:700;font-family:var(--mono);color:var(--green);" id="e-total-bayar">—</div>
+            </div>
+            <div style="padding:10px 16px;">
+              <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;" id="e-sisa-lbl">Sisa</div>
+              <div style="font-size:15px;font-weight:700;font-family:var(--mono);color:var(--accent);" id="e-total-sisa">Rp 0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: nota selection -->
+      <div style="display:flex;flex-direction:column;height:clamp(420px, 72vh, 680px);border-left:1px solid var(--border);">
+        <!-- Header + search -->
+        <div style="padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface2);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:12px;font-weight:600;color:var(--text);">Pilih Nota</div>
+            <span style="font-size:12px;font-weight:600;color:var(--blue);font-family:var(--mono);" id="e-nota-meta">0 nota</span>
+          </div>
+          <div style="position:relative;">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;color:var(--text-3);">🔍</span>
+            <input type="text" id="e-nota-search" placeholder="Cari no. nota atau pelanggan..."
+              oninput="filterEditNota(this.value)"
+              style="padding:8px 10px 8px 32px;font-size:12px;border-radius:var(--radius-sm);width:100%;background:var(--surface);border:1px solid var(--border);">
+          </div>
+        </div>
+        <!-- Column header -->
+        <div style="display:grid;grid-template-columns:36px 1fr 80px 110px;align-items:center;padding:7px 14px;background:var(--surface2);border-bottom:2px solid var(--border);flex-shrink:0;">
+          <span></span>
+          <span style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;">No. Nota · Pelanggan</span>
+          <span style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;text-align:right;">Tanggal</span>
+          <span style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;text-align:right;">Jumlah</span>
+        </div>
+        <!-- Scrollable nota rows -->
+        <div id="e-nota-grid" style="flex:1;overflow-y:auto;"></div>
+      </div>
+    </div>
+
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeEdit()">Batal</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Gabungkan Tagihan ═══ -->
+<div class="modal-bd" id="modal-combine" onclick="if(event.target===this)closeCombine()">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-hd">
+      <div>
+        <h3>Gabungkan Tagihan</h3>
+        <div style="font-size:11px;color:var(--text-3);margin-top:2px;" id="comb-sub">Pilih tagihan lain untuk digabungkan</div>
+      </div>
+      <button class="modal-x" onclick="closeCombine()">×</button>
+    </div>
+    <div class="modal-inner">
+      <div style="font-size:13px;color:var(--text-2);background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius-sm);padding:10px 14px;">
+        Tagihan yang digabung akan membuat <strong>tagihan baru</strong> yang berisi semua nota dan semua pembayaran dari tagihan yang dipilih. Tagihan lama akan dihapus.
+      </div>
+
+      <div class="section-lbl">Tagihan yang akan digabung</div>
+      <div id="comb-source" style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;font-family:var(--mono);color:var(--text-2);">—</div>
+
+      <div class="section-lbl">Pilih Tagihan Lain (sama pelanggan)</div>
+      <div id="comb-list" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;max-height:280px;overflow-y:auto;"></div>
+
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;">
+        <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Ringkasan Gabungan</div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span style="color:var(--text-3)">Total Nota</span><span id="comb-r-nota" style="font-family:var(--mono);font-weight:600;">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span style="color:var(--text-3)">Total Tagihan</span><span id="comb-r-tagihan" style="font-family:var(--mono);font-weight:600;">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span style="color:var(--text-3)">Total Bayar</span><span id="comb-r-bayar" style="font-family:var(--mono);font-weight:600;color:var(--green);">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-top:1px solid var(--border);margin-top:4px;padding-top:8px;"><span style="color:var(--text-3)">Sisa</span><span id="comb-r-sisa" style="font-family:var(--mono);font-weight:700;">—</span></div>
+      </div>
+      <div class="field"><label>No. Tagihan Baru</label><input type="text" id="comb-notag" style="font-family:var(--mono);"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeCombine()">Batal</button>
+      <button class="btn btn-primary" id="btn-combine" onclick="saveCombine()" disabled>Gabungkan</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Mobile detail sheet (for mobile daftar) -->
+<div class="detail-sheet-mobile" id="mobile-detail-sheet" onclick="if(event.target===this)closeMobileDetail()">
+  <div class="detail-sheet-inner">
+    <div class="ds-handle"></div>
+    <div class="ds-hd">
+      <div style="font-family:var(--mono);font-size:14px;font-weight:600;" id="mds-title">—</div>
+      <button onclick="closeMobileDetail()" style="background:var(--surface2);border:none;font-size:16px;color:var(--text-2);width:28px;height:28px;border-radius:50%;cursor:pointer;">×</button>
+    </div>
+    <div class="ds-body" id="mds-body"></div>
+  </div>
+</div>
+
+    <div style="margin-top:3pt;"><strong>Tanggal</strong> : <span id="tp-tgl">—</span></div>
+  </div>
+  <table class="tp-table">
+    <thead>
+      <tr>
+        <th style="width:14%">Nama</th>
+        <th style="width:10%">Tanggal Nota</th>
+        <th style="width:7%;text-align:center">Nota</th>
+        <th style="width:16%;text-align:right">Sub-Total</th>
+        <th style="width:9%;text-align:right">Ongkir</th>
+        <th style="width:10%;text-align:right">RT / pot</th>
+        <th style="width:16%;text-align:right">Total Tagihan</th>
+        <th>Catatan</th>
+      </tr>
+    </thead>
+    <tbody id="tp-rows"></tbody>
+  </table>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GAS_URL = MK_CONFIG.GAS;
+const CARA_BAYAR = ['Tunai','Transfer','Cek / Giro','Lainnya'];
+
+/* ── State ── */
+let CLIENTS = [], NOTAS = [], TAGIHANLIST = [], KREDIT_POOL = [], ALL_NOTAS = [];
+let selClient = null, selNotas = new Set(), selKredit = new Set();
+let editingId = null;
+window._activeTagihanId = null;
+
+/* ── Init ── */
+
+function jakartaDate(offsetDays=0){
+  const d = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));
+  d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+window.addEventListener('DOMContentLoaded', () => {
+  // Auth
+  MK_AUTH.ensureDemo();
+  const SESS = MK_AUTH.require('login.html', ['packaging','admin']);
+  if(!SESS) return;
+  MK_AUTH.initPage('tagihan.html');
+  const _pill = document.getElementById('d-user-pill');
+  if(_pill) _pill.innerHTML = MK_AUTH.renderPill();
+  const _topU = document.getElementById('d-topbar-user');
+  if(_topU){ const _rl={admin:'⚡ Admin',packaging:'📦 Packaging',produksi:'🏭 Produksi'}; _topU.textContent = SESS.nama + ' · ' + (_rl[SESS.role]||SESS.role); }
+
+
+  const now = new Date();
+  document.getElementById('d-sidebar-date').innerHTML =
+    now.toLocaleDateString('id-ID',{weekday:'long'})+'<br>'+
+    now.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('f-tanggal').value = jakartaDate();
+  loadAll();
+  updateRingkasan();
+});
+
+function go(p){ window.location.href = p; }
+function isMobile(){ return window.innerWidth < 640; }
+function closeMobileDetail(){ document.getElementById('mobile-detail-sheet').classList.remove('open'); }
+
+function switchPage(p) {
+  ['buat','daftar'].forEach(n => {
+    document.getElementById('page-'+n).classList.toggle('active', n===p);
+    document.getElementById('tab-'+n).classList.toggle('active', n===p);
+  });
+  if (p==='daftar') renderDaftar();
+}
+
+/* ── Load ── */
+async function loadAll() {
+  MK_LOADER.show();
+  try {
+    const [dC,dN,dT,dK,dA] = await Promise.all([
+      MK_CACHE.fetch('getPelanggan',       GAS_URL),
+      MK_CACHE.fetch('getNotaBelumTagih',  GAS_URL),
+      MK_CACHE.fetch('getTagihan',         GAS_URL),
+      MK_CACHE.fetch('getKredit',          GAS_URL),
+      MK_CACHE.fetch('getAllNotas',        GAS_URL),
+    ]);
+    CLIENTS      = dC.success ? dC.pelanggan.map(p => ({
+      name:      p.nama       || '',
+      nama:      p.nama       || '',
+      alias:     p.alias      || '',
+      kota:      p.kota       || '',
+      group:     p.group      || '',
+      kontak:    p.kontak     || '',
+      kredit:    p.kredit     || 0,
+      belumTagih:p.belumTagih || 0,
+      totalBelum:p.totalBelum || 0,
+      priceList: p.priceList  || [],
+    })) : [];
+    NOTAS        = dN.success ? dN.notas.map(n=>({...n,nama:n.client||n.nama||''}))  : [];
+    TAGIHANLIST  = dT.success ? dT.tagihan  : [];
+    KREDIT_POOL  = dK.success ? dK.kredit   : [];
+    ALL_NOTAS    = dA.success ? dA.notas.map(n=>({...n, id: n.id||n.idNota||'', nama:n.client||n.nama||''})) : [];
+  } catch(e) {
+    CLIENTS=[]; NOTAS=[]; TAGIHANLIST=[]; KREDIT_POOL=[]; ALL_NOTAS=[];
+  } finally {
+    MK_LOADER.hide();
+  }
+  document.getElementById('daftar-count').textContent = TAGIHANLIST.length;
+  renderDaftar();
+}
+
+/* ── Autocomplete ── */
+function acFilter(q) {
+  const list = document.getElementById('ac-list');
+  if (!q.trim()) { list.classList.remove('open'); return; }
+  const res = CLIENTS.filter(c =>
+    c.name.toLowerCase().includes(q.toLowerCase()) ||
+    (c.alias||'').toLowerCase().includes(q.toLowerCase()));
+  if (!res.length) { list.classList.remove('open'); return; }
+  list.innerHTML = res.map(c =>
+    `<div class="ac-item" onmousedown="selectClient('${c.name.replace(/'/g,"\\'")}')">
+      <div>
+        <div style="font-size:13px;font-weight:500;">${c.name} <span style="color:var(--text-3);font-size:11px;font-family:var(--mono);">(${c.alias||'—'})</span></div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:1px;">${c.kota||''}${c.group?' · '+c.group:''}</div>
+      </div>
+      ${c.belumTagih>0?`<span style="font-size:11px;font-family:var(--mono);color:var(--accent);text-align:right;">${c.belumTagih} nota<br>${rp(c.totalBelum)}</span>`:''}
+    </div>`).join('');
+  list.classList.add('open');
+}
+function acClose(){ document.getElementById('ac-list').classList.remove('open'); }
+
+function selectClient(name) {
+  selClient = CLIENTS.find(x => x.name===name);
+  if (!selClient) return;
+  document.getElementById('f-client').value = name;
+
+  // Update client-meta-top (topbar hint)
+  const metaTop = document.getElementById('client-meta-top');
+  if(metaTop) metaTop.textContent = selClient.kota||'';
+
+  // Update client strip in ringkasan
+  document.getElementById('client-strip').classList.add('show');
+  document.getElementById('ri-nama').textContent = name;
+  document.getElementById('ri-kota').textContent = `${selClient.kota||'—'}${selClient.group?' · '+selClient.group:''}`;
+
+  // Show kredit and nota belum tagih if elements exist
+  const riKredit = document.getElementById('ri-kredit');
+  if(riKredit) riKredit.textContent = selClient.kredit > 0 ? rp(selClient.kredit) : '—';
+  const riBelum = document.getElementById('ri-belum');
+  if(riBelum) riBelum.textContent = selClient.belumTagih > 0 ? selClient.belumTagih + ' nota' : '—';
+
+  genNoTagihan();
+  renderNotaGrid();
+  renderKreditSection();
+  acClose();
+}
+
+function onTanggalChange() { if (selClient) genNoTagihan(); }
+
+function isDeposit() { return document.getElementById('f-deposit').checked; }
+
+function onDepositToggle() {
+  const on = isDeposit();
+  // Update toggle visual
+  document.getElementById('deposit-track').style.background = on ? 'var(--blue)' : 'var(--border)';
+  document.getElementById('deposit-thumb').style.transform  = on ? 'translateX(16px)' : 'translateX(0)';
+  // Hide/show Step 2 (nota selection) and kredit card
+  const notaCard   = document.querySelector('#page-buat .card:nth-child(2)');
+  const kreditCard = document.getElementById('kredit-card');
+  if (notaCard) notaCard.style.display = on ? 'none' : '';
+  // Update step labels
+  document.getElementById('bayar-step-lbl').textContent = on
+    ? '2 — Data Pembayaran Deposit'
+    : (kreditCard && kreditCard.style.display!=='none' ? '4 — Data Pembayaran' : '3 — Data Pembayaran');
+  // Regen no tagihan with DP prefix
+  if (selClient) genNoTagihan();
+  // Update simpan button
+  document.getElementById('btn-simpan').disabled = !selClient;
+  updateRingkasan();
+}
+
+function genNoTagihan() {
+  if (!selClient) return;
+  const tgl = document.getElementById('f-tanggal').value;
+  if (!tgl) return;
+
+  // Format: ALIAS-DDMMYY-00 (seq per hari per pelanggan)
+  const d  = new Date(tgl + 'T00:00:00');
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yy = String(d.getFullYear()).slice(2);
+  const dateStr = dd + mm + yy;
+
+  const alias = (selClient.alias || selClient.name.slice(0,8)).toUpperCase().replace(/\s+/g,'-');
+
+  // Hitung tagihan hari ini untuk pelanggan ini
+  const sameDayCount = TAGIHANLIST.filter(t =>
+    t.client === selClient.name &&
+    t.tanggal && t.tanggal.replace(/-/g,'').slice(2) === yy+mm+dd  // match YYMMDD
+  ).length;
+
+  const seq    = String(sameDayCount).padStart(2,'0');
+  const prefix = isDeposit()
+    ? `${alias}-DP-${dateStr}-${seq}`
+    : `${alias}-${dateStr}-${seq}`;
+
+  document.getElementById('f-notag').value = prefix;
+}
+
+/* ── Nota grid ── */
+function renderNotaGrid() {
+  selNotas.clear();
+  updateChkAll();
+
+  // NOTAS dari getNotaBelumTagih = belum masuk tagihan manapun
+  // Filter tambahan: status harus kosong
+  const available = NOTAS.filter(n => !n.status || n.status.trim() === '');
+
+  // Nota milik pelanggan sendiri
+  const ownPool = available.filter(n => n.client === selClient.name);
+
+  // Nota dari pelanggan lain dalam grouping yang sama
+  const groupPool = (selClient.group && selClient.group !== '')
+    ? available.filter(n =>
+        n.client !== selClient.name &&
+        n.group === selClient.group)
+    : [];
+
+  const sortNewest = arr => [...arr].sort((a,b) => (b.tanggal||'').localeCompare(a.tanggal||''));
+
+  const cardHTML = n => `
+    <div class="nota-card" id="nc-${n.id}" onclick="toggleNota('${n.id}')">
+      <div class="nota-chk-col">
+        <div class="nota-chk" id="nchk-${n.id}">
+          <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+            <path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="nota-info-col">
+        <div class="nota-top-row">
+          <span class="nota-number">Nota ${n.nota}</span>
+          ${n.client !== selClient.name
+            ? `<span class="nota-group-badge" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);">${n.client}</span>`
+            : ''}
+        </div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:2px;font-family:var(--mono);">
+          ${n.client} · ${fmtDate(n.tanggal)}
+        </div>
+      </div>
+      <div class="nota-total-col">
+        <span class="nota-total-val">${rp(n.total)}</span>
+      </div>
+    </div>`;
+
+  // ── Box 2a: nota pelanggan sendiri ──
+  const ownGrid = document.getElementById('nota-grid');
+  ownGrid.innerHTML = ownPool.length
+    ? sortNewest(ownPool).map(cardHTML).join('')
+    : '<div class="nota-empty-state">Tidak ada nota tersedia untuk pelanggan ini</div>';
+
+  // ── Box 2b: nota grouping ──
+  const groupCard = document.getElementById('nota-group-card');
+  const groupGrid = document.getElementById('nota-group-grid');
+  if (selClient.group && selClient.group !== '') {
+    groupCard.style.display = 'block';
+    const names = [...new Set(groupPool.map(n=>n.client))];
+    document.getElementById('nota-group-lbl').textContent =
+      names.length ? `Grup: ${selClient.group} — ${names.join(', ')}` : `Grup: ${selClient.group}`;
+    groupGrid.innerHTML = groupPool.length
+      ? sortNewest(groupPool).map(cardHTML).join('')
+      : '<div class="nota-empty-state">Tidak ada nota grouping</div>';
+  } else {
+    groupCard.style.display = 'none';
+    groupGrid.innerHTML = '';
+    document.getElementById('nota-group-lbl').textContent = '';
+  }
+
+  updateNotaMeta();
+  updateRingkasan();
+}
+
+function toggleNota(id) {
+  const card = document.getElementById(`nc-${id}`);
+  if (!card) return;
+  const isSelected = selNotas.has(id);
+  if (isSelected) { selNotas.delete(id); card.classList.remove('selected'); }
+  else            { selNotas.add(id);    card.classList.add('selected'); }
+  updateChkAll();
+  updateNotaMeta();
+  updateRingkasan();
+}
+
+function updateChkAll() {
+  // Per-grid: each "Pilih semua" reflects only its own grid
+  const sync = (gridId, boxId, tickId) => {
+    const all  = document.querySelectorAll(`#${gridId} .nota-card`);
+    const box  = document.getElementById(boxId);
+    const tick = document.getElementById(tickId);
+    if (!box || !tick) return;
+    const allSel = all.length > 0 && [...all].every(c => selNotas.has(c.id.replace('nc-','')));
+    if (allSel) {
+      box.style.background  = 'var(--accent)';
+      box.style.borderColor = 'var(--accent)';
+      tick.style.display    = 'block';
+    } else {
+      box.style.background  = 'var(--surface)';
+      box.style.borderColor = 'var(--border)';
+      tick.style.display    = 'none';
+    }
+  };
+  sync('nota-grid',       'chk-all-box',     'chk-all-tick');
+  sync('nota-group-grid', 'chk-all-box-grp', 'chk-all-tick-grp');
+}
+
+function toggleAll(gridId = 'nota-grid') {
+  const all    = document.querySelectorAll(`#${gridId} .nota-card`);
+  const allSel  = all.length > 0 && [...all].every(c => selNotas.has(c.id.replace('nc-','')));
+  const checked = !allSel; // toggle
+  all.forEach(card => {
+    const id = card.id.replace('nc-','');
+    if (checked) { selNotas.add(id); card.classList.add('selected'); }
+    else         { selNotas.delete(id); card.classList.remove('selected'); }
+  });
+  updateChkAll();
+  updateNotaMeta();
+  updateRingkasan();
+}
+
+function updateNotaMeta() {
+  const lookup = id => NOTAS.find(n=>n.id===id) || ALL_NOTAS.find(n=>n.id===id);
+
+  const ownIds = new Set([...document.querySelectorAll('#nota-grid .nota-card')].map(c=>c.id.replace('nc-','')));
+  const grpIds = new Set([...document.querySelectorAll('#nota-group-grid .nota-card')].map(c=>c.id.replace('nc-','')));
+
+  let ownCount=0, ownTotal=0, grpCount=0, grpTotal=0;
+  selNotas.forEach(id => {
+    const n = lookup(id);
+    const t = n ? (+n.total||0) : 0;
+    if (ownIds.has(id)) { ownCount++; ownTotal+=t; }
+    else if (grpIds.has(id)) { grpCount++; grpTotal+=t; }
+  });
+
+  const ownEl = document.getElementById('nota-sel-meta');
+  if (ownEl) ownEl.textContent = ownCount>0 ? `${ownCount} nota dipilih · ${rp(ownTotal)}` : '0 nota dipilih';
+
+  const grpEl = document.getElementById('nota-group-meta');
+  if (grpEl) grpEl.textContent = grpCount>0 ? `${grpCount} nota dipilih · ${rp(grpTotal)}` : '0 nota dipilih';
+}
+
+/* ── Kredit section ── */
+function renderKreditSection() {
+  selKredit.clear();
+  const clientKredit = KREDIT_POOL.filter(k =>
+    k.client === selClient.name ||
+    (selClient.group && k.group === selClient.group && selClient.group !== ''));
+
+  const card = document.getElementById('kredit-card');
+  const step = document.getElementById('bayar-step-lbl');
+
+  if (!clientKredit.length) {
+    card.style.display = 'none';
+    step.textContent   = '3 — Data Pembayaran';
+    return;
+  }
+
+  card.style.display = 'block';
+  step.textContent   = '4 — Data Pembayaran';
+
+  document.getElementById('kredit-list').innerHTML = clientKredit.map(k => `
+    <div class="kredit-card" id="kc-${k.id}" onclick="toggleKredit('${k.id}')">
+      <div class="kredit-chk-col">
+        <div class="kredit-chk" id="kchk-${k.id}">
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+            <path d="M1 3.5L3.5 6.5L9 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="kredit-info">
+        <div class="kredit-from">Tagihan ${k.fromTagihan}</div>
+        <div class="kredit-sub">${fmtDate(k.tanggal)} · ${k.client}</div>
+      </div>
+      <div class="kredit-amount">${rp(k.jumlah)}</div>
+    </div>`).join('');
+
+  updateKreditTotal();
+}
+
+function toggleKredit(id) {
+  const card = document.getElementById(`kc-${id}`);
+  if (!card) return;
+  if (selKredit.has(id)) { selKredit.delete(id); card.classList.remove('selected'); }
+  else                   { selKredit.add(id);    card.classList.add('selected'); }
+  updateKreditTotal();
+  updateRingkasan();
+}
+
+function updateKreditTotal() {
+  const total = KREDIT_POOL
+    .filter(k=>selKredit.has(k.id))
+    .reduce((s,k)=>s+k.jumlah,0);
+  const row = document.getElementById('kredit-total-row');
+  row.style.display = selKredit.size > 0 ? 'flex' : 'none';
+  document.getElementById('kredit-total-val').textContent = rp(total);
+}
+
+/* ── Pembayaran rows ── */
+function addBayarRow(cara='Tunai',jumlah='',ket='',tgl='',listId='bayar-list') {
+  const wrap = document.getElementById(listId);
+  const rid  = `b${Date.now()}${Math.random().toString(36).slice(2,4)}`;
+  const div  = document.createElement('div');
+  div.className = 'bayar-row'; div.id = rid;
+  div.innerHTML = `
+    <div class="sel" style="position:relative">
+      <select id="${rid}c">
+        ${CARA_BAYAR.map(c=>`<option ${c===cara?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <span style="position:absolute;right:7px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;font-size:10px">▾</span>
+    </div>
+    <div class="rp-w">
+      <span>Rp</span>
+      <input type="number" id="${rid}j" value="${jumlah||''}" placeholder="0" min="0"
+        oninput="${listId==='bayar-list'?'updateRingkasan()':'updateEditTotal(TAGIHANLIST.find(x=>x.id===editingId))'}">
+    </div>
+    <input type="text" id="${rid}k" value="${ket}" placeholder="cth. BCA 1234 / No. Cek">
+    <input type="date" id="${rid}t" value="${tgl}" style="font-family:var(--mono);font-size:12px">
+    <button class="rm" onclick="document.getElementById('${rid}').remove();${listId==='bayar-list'?'updateRingkasan()':'updateEditTotal(TAGIHANLIST.find(x=>x.id===editingId))'}">×</button>`;
+  wrap.appendChild(div);
+}
+
+function addEditBayarRow(cara='Tunai',jumlah='',ket='',tgl='') {
+  addBayarRow(cara,jumlah,ket,tgl,'e-bayar-list');
+}
+
+function getBayarRows(listId='bayar-list') {
+  return Array.from(document.querySelectorAll(`#${listId} .bayar-row`)).map(row => {
+    const id = row.id;
+    return {
+      cara:   document.getElementById(id+'c').value,
+      jumlah: +document.getElementById(id+'j').value||0,
+      ket:    document.getElementById(id+'k').value.trim(),
+      tgl:    document.getElementById(id+'t').value,
+    };
+  }).filter(r=>r.jumlah>0);
+}
+
+function updateRingkasan() {
+  let selData = NOTAS.filter(n=>selNotas.has(n.id));
+  if(!selData.length && selNotas.size > 0) selData = ALL_NOTAS.filter(n=>selNotas.has(n.id));
+  const totalTagihan = selData.reduce((s,n)=>s+(+n.total||0),0);
+  const kreditUsed   = KREDIT_POOL.filter(k=>selKredit.has(k.id)).reduce((s,k)=>s+k.jumlah,0);
+  const bayarRows    = getBayarRows();
+  const totalBayar   = bayarRows.reduce((s,r)=>s+r.jumlah,0);
+  const totalBayarAll= kreditUsed + totalBayar;
+  const sisa         = totalTagihan - totalBayarAll;
+
+  // Periode — use ALL_NOTAS as fallback since some notas may not be in NOTAS
+  let periode = '—';
+  if (selData.length) {
+    const f = d=>d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'2-digit'});
+    const dates = selData
+      .map(n=>new Date(n.tanggal))
+      .filter(d=>!isNaN(d))
+      .sort((a,b)=>a-b);
+    if(dates.length) periode = dates.length===1 ? f(dates[0]) : `${f(dates[0])} — ${f(dates[dates.length-1])}`;
+  } else if(selNotas.size > 0) {
+    // Fallback: lookup from ALL_NOTAS
+    const fallbackData = ALL_NOTAS.filter(n=>selNotas.has(n.id));
+    const f = d=>d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'2-digit'});
+    const dates = fallbackData
+      .map(n=>new Date(n.tanggal))
+      .filter(d=>!isNaN(d))
+      .sort((a,b)=>a-b);
+    if(dates.length) periode = dates.length===1 ? f(dates[0]) : `${f(dates[0])} — ${f(dates[dates.length-1])}`;
+  }
+
+  // Status
+  let status='PENDING', sCls='s-pending', sisaLbl='Sisa Tagihan';
+  if (totalBayarAll > 0) {
+    if (sisa === 0)  { status='LUNAS';  sCls='s-lunas';  sisaLbl='Lunas'; }
+    else if (sisa<0) { status='KREDIT'; sCls='s-kredit'; sisaLbl='Kelebihan Bayar'; }
+  }
+
+  document.getElementById('r-jml').textContent       = isDeposit() ? 'DEPOSIT / DP' : `${selNotas.size} nota`;
+  document.getElementById('r-periode').textContent   = isDeposit() ? '—' : periode;
+  document.getElementById('r-tagihan').textContent   = isDeposit() ? 'Rp 0' : rp(totalTagihan);
+  document.getElementById('r-kredit-used').textContent = kreditUsed>0?rp(kreditUsed):'—';
+  document.getElementById('r-kredit-used').className = 'sum-val'+(kreditUsed>0?' blue':'');
+  document.getElementById('r-bayar').textContent     = totalBayar>0?rp(totalBayar):'—';
+  document.getElementById('r-bayar').className       = 'sum-val'+(totalBayar>0?' green':'');
+  document.getElementById('r-sisa-lbl').textContent  = isDeposit() ? 'Kredit Masuk' : sisaLbl;
+  document.getElementById('r-sisa').textContent      = isDeposit() ? rp(totalBayar) : rp(Math.abs(sisa));
+  document.getElementById('r-sisa').className        = `sum-val${isDeposit()||sisa<0?' blue':sisa>0?' red':''}`;
+  document.getElementById('r-total-lbl').textContent = isDeposit() ? 'KREDIT MASUK' : sisaLbl.toUpperCase();
+  document.getElementById('r-total').textContent     = isDeposit() ? rp(totalBayar) : rp(Math.abs(sisa));
+  const sb = document.getElementById('r-status');
+  sb.className = `status-badge ${isDeposit()&&totalBayar>0?'s-kredit':sCls}`;
+  document.getElementById('r-status-text').textContent = isDeposit()&&totalBayar>0?'KREDIT':status;
+
+  // Enable button: deposit mode just needs client + at least 1 payment; normal needs nota too
+  document.getElementById('btn-simpan').disabled = !selClient || (!isDeposit() && selNotas.size===0);
+}
+
+/* ── Save ── */
+async function saveTagihan() {
+  if (!selClient) { showToast('⚠ Pilih pelanggan terlebih dahulu!', false); return; }
+  if (!isDeposit() && selNotas.size===0) { showToast('⚠ Pilih minimal 1 nota!', false); return; }
+  const noTagihan = document.getElementById('f-notag').value.trim();
+  const tanggal   = document.getElementById('f-tanggal').value;
+  const catatan   = document.getElementById('f-catatan').value.trim();
+  if (!noTagihan) { showToast('⚠ No. Tagihan tidak boleh kosong!',false); return; }
+
+  const bayarRows    = getBayarRows();
+  const totalBayar   = bayarRows.reduce((s,r)=>s+r.jumlah,0);
+  const kreditUsed   = KREDIT_POOL.filter(k=>selKredit.has(k.id)).reduce((s,k)=>s+k.jumlah,0);
+
+  let selData=[], totalTagihan=0, tglAwal='', tglAkhir='', periode='—', sisa=0, status='PENDING';
+
+  if (isDeposit()) {
+    // Deposit: tidak perlu nota, langsung jadi kredit
+    totalTagihan = 0;
+    sisa         = -(totalBayar + kreditUsed); // negatif = kelebihan → kredit
+    status       = totalBayar > 0 ? 'KREDIT' : 'PENDING';
+  } else {
+    selData      = NOTAS.filter(n=>selNotas.has(n.id));
+    totalTagihan = selData.reduce((s,n)=>s+n.total,0);
+    sisa         = totalTagihan - (totalBayar + kreditUsed);
+    status       = (totalBayar+kreditUsed)===0?'PENDING':sisa===0?'LUNAS':sisa<0?'KREDIT':'PENDING';
+    if (selData.length) {
+      const dates = selData.map(n=>new Date(n.tanggal)).sort((a,b)=>a-b);
+      const f = d=>d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'2-digit'});
+      tglAwal  = selData.reduce((min,n)=>n.tanggal<min?n.tanggal:min, selData[0].tanggal);
+      tglAkhir = selData.reduce((max,n)=>n.tanggal>max?n.tanggal:max, selData[0].tanggal);
+      periode  = dates.length===1 ? f(dates[0]) : `${f(dates[0])} — ${f(dates[dates.length-1])}`;
+    }
+  }
+
+  const obj = {
+    id: Date.now().toString(), noTagihan, tanggal,
+    client: selClient.name, alias: selClient.alias||'',
+    kota: selClient.kota||'', group: selClient.group||'',
+    isDeposit: isDeposit(),
+    notaIds: [...selNotas],
+    notaList: selData.map(n=>n.nota),
+    tglAwal, tglAkhir, periode,
+    totalTagihan, bayarRows,
+    kreditIds: [...selKredit],
+    kreditUsed, totalBayar, sisa, status, catatan,
+    notas: selData.length,
+  };
+
+  // Optimistic
+  TAGIHANLIST.unshift(obj);
+  // Don't remove from ALL_NOTAS - bust cache so next load is fresh
+  ALL_NOTAS = ALL_NOTAS.filter(n=>!selNotas.has(n.id));
+  // Remove used kredit
+  KREDIT_POOL = KREDIT_POOL.filter(k=>!selKredit.has(k.id));
+  // Add new kredit if kelebihan bayar
+  if (sisa < 0) {
+    KREDIT_POOL.unshift({
+      id: 'k'+Date.now(), client: selClient.name,
+      group: selClient.group||'', fromTagihan: noTagihan,
+      tanggal, jumlah: Math.abs(sisa),
+    });
+  }
+
+  document.getElementById('daftar-count').textContent = TAGIHANLIST.length;
+  showToast(`✓ Tagihan ${noTagihan} berhasil disimpan!`,true);
+  resetForm();
+
+  MK_CACHE.bust('getTagihan'); MK_CACHE.bust('getKredit'); MK_CACHE.bust('getNotaBelumTagih'); try { await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'saveTagihan',...obj})}); }
+  catch(e){ console.warn('GAS sync gagal'); }
+}
+
+/* ── Daftar ── */
+function renderDaftar() {
+  const q      = document.getElementById('filter-q').value.toLowerCase().trim();
+  const status = document.getElementById('filter-status').value;
+  const plg    = document.getElementById('filter-plg').value.toLowerCase().trim();
+
+  const visible = TAGIHANLIST.filter(t => {
+    if (status && t.status!==status) return false;
+    if (plg && !t.client.toLowerCase().includes(plg) && !(t.alias||'').toLowerCase().includes(plg)) return false;
+    if (q) {
+      const m = (t.noTagihan||'').toLowerCase().includes(q) || t.client.toLowerCase().includes(q);
+      const mn = (t.notaList||[]).some(n=>String(n).includes(q));
+      if (!m && !mn) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('daftar-count').textContent = visible.length;
+  const body = document.getElementById('daftar-body');
+  if (!visible.length) {
+    body.innerHTML=`<tr><td colspan="6" class="tag-empty">${q||status?'Tidak ditemukan.':'Belum ada tagihan.'}</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = visible.map(t => {
+    const sc = t.status==='LUNAS'?'sb-lunas':t.status==='KREDIT'?'sb-kredit':'sb-pending';
+    const sisaColor = t.sisa<0?'var(--blue)':t.sisa>0?'var(--accent)':'var(--text-3)';
+    const isActive = window._activeTagihanId === t.id;
+    return `<tr onclick="openDetail('${t.id}')" class="${isActive?'active-row':''}">
+      <td>
+        <div style="font-family:var(--mono);font-size:12px;font-weight:700;">${t.noTagihan}</div>
+        <div style="font-size:12px;font-weight:500;margin-top:2px;color:var(--text);">${t.client}</div>
+        <div style="font-size:11px;color:var(--text-3);font-family:var(--mono);margin-top:1px;">${fmtDate(t.tanggal)} · ${t.notas} nota</div>
+      </td>
+      <td style="text-align:right;font-family:var(--mono);font-size:13px;font-weight:600;white-space:nowrap;vertical-align:middle;">${rp(t.totalTagihan)}</td>
+      <td style="text-align:right;font-family:var(--mono);font-size:13px;font-weight:700;white-space:nowrap;color:${sisaColor};vertical-align:middle;">${t.sisa===0?'Lunas ✓':rp(Math.abs(t.sisa))}</td>
+      <td style="vertical-align:middle;"><span class="sbadge ${sc}">${t.status}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Detail panel ── */
+function openDetail(id) {
+  window._activeTagihanId = id;
+  renderDaftar();
+
+  const t = TAGIHANLIST.find(x=>x.id===id);
+  if (!t) return;
+
+  const html = buildDetailHTML(t);
+
+  if (isMobile()) {
+    document.getElementById('mds-title').textContent = t.noTagihan;
+    document.getElementById('mds-body').innerHTML = html;
+    document.getElementById('mobile-detail-sheet').classList.add('open');
+  } else {
+    document.getElementById('detail-pane').innerHTML = html;
+  }
+}
+
+function buildDetailHTML(t) {
+  const sc2 = t.status==='LUNAS'?'sb-lunas':t.status==='KREDIT'?'sb-kredit':'sb-pending';
+  const sisaColor = t.sisa<0?'var(--blue)':t.sisa>0?'var(--accent)':'var(--text-3)';
+  const sisaLbl   = t.sisa<0?'Kelebihan Bayar':t.sisa===0?'Status':'Sisa Tagihan';
+  const totalBayar = (t.bayarRows||[]).reduce((s,b)=>s+b.jumlah,0);
+
+  // Aggregate barang diambil from matching NOTAS
+  const notaObjs = (t.notaList||[]).map(num=>NOTAS.find(n=>n.nota===num)).filter(Boolean);
+  const agg = {};
+  notaObjs.forEach(n=>{
+    if(!n.items) return;
+    n.items.split(/[,;]/).forEach(part=>{
+      const m = part.trim().match(/^(.+?)\s*[×x]\s*(\d+)/i);
+      if(!m) return;
+      const nama=m[1].trim(); const qty=+m[2];
+      if(!agg[nama]) agg[nama]={qty:0};
+      agg[nama].qty += qty;
+    });
+  });
+  const aggRows = Object.entries(agg);
+
+  const barangHTML = aggRows.length ? `
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);">
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);font-family:var(--mono);margin-bottom:8px;">Barang Diambil</div>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+        <div style="display:grid;grid-template-columns:1fr 60px;padding:6px 12px;background:var(--surface2);border-bottom:1px solid var(--border);">
+          <span style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;">Produk</span>
+          <span style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;text-align:right;">Qty</span>
+        </div>
+        ${aggRows.map(([nama,d])=>`
+        <div style="display:grid;grid-template-columns:1fr 60px;padding:8px 12px;border-bottom:1px solid var(--surface2);align-items:center;">
+          <span style="font-size:12px;font-weight:500;">${nama}</span>
+          <span style="font-family:var(--mono);font-size:12px;font-weight:600;text-align:right;color:var(--text-2);">${d.qty.toLocaleString('id-ID')}</span>
+        </div>`).join('')}
+      </div>
+    </div>` : '';
+
+  return `
+    <div style="padding:16px 18px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:2;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:15px;font-weight:600;">${t.noTagihan}</div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:3px;">${t.client} · ${fmtDate(t.tanggal)}</div>
+        </div>
+        <span class="sbadge ${sc2}" style="flex-shrink:0;margin-top:2px;">${t.status}</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-ghost btn-sm" onclick="openEdit('${t.id}')">✏️ Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="openCombine('${t.id}')" style="color:var(--blue);border-color:var(--blue-border);">🔗 Gabungkan</button>
+        <button class="btn btn-ghost btn-sm" onclick="printTagihan('${t.id}')" style="color:var(--green);border-color:var(--green-border);">🖨 Cetak</button>
+      </div>
+    </div>
+
+    <div style="background:var(--surface);border-bottom:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);">
+        <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;">Periode Nota</span>
+        <span style="font-size:12px;font-weight:500;font-family:var(--mono);">${(()=>{
+          if(t.periode && t.periode!=='—') return t.periode;
+          const f = d=>d?new Date(d).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'2-digit'}):'—';
+          if(t.tglAwal && t.tglAkhir && t.tglAwal!==t.tglAkhir) return `${f(t.tglAwal)} — ${f(t.tglAkhir)}`;
+          if(t.tglAwal) return f(t.tglAwal);
+          return '—';
+        })()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);">
+        <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;">Jumlah Nota</span>
+        <span style="font-size:12px;font-weight:600;font-family:var(--mono);color:var(--blue);">${t.notas} nota</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);">
+        <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;">Total Tagihan</span>
+        <span style="font-size:12px;font-weight:700;font-family:var(--mono);">${rp(t.totalTagihan)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);">
+        <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;">Total Dibayar</span>
+        <span style="font-size:12px;font-weight:700;font-family:var(--mono);color:var(--green);">${totalBayar>0?rp(totalBayar):'—'}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 18px;">
+        <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;">${sisaLbl}</span>
+        <span style="font-size:12px;font-weight:700;font-family:var(--mono);color:${sisaColor};">${t.sisa===0?'Lunas ✓':rp(Math.abs(t.sisa))}</span>
+      </div>
+    </div>
+
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);">
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);font-family:var(--mono);margin-bottom:8px;">Nota dalam Tagihan (${t.notas})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${(t.notaList||[]).map(n=>`<span style="font-family:var(--mono);font-size:11px;font-weight:500;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 9px;color:var(--text-2);">${n}</span>`).join('')||'<span style="font-size:12px;color:var(--text-3);font-style:italic;">Tidak ada data nomor nota</span>'}
+      </div>
+    </div>
+
+    ${barangHTML}
+
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);">
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);font-family:var(--mono);margin-bottom:8px;">Riwayat Pembayaran</div>
+      ${(t.bayarRows||[]).length ? (t.bayarRows||[]).map((b,i)=>`
+        <div style="display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--surface2);">
+          <div style="width:24px;height:24px;border-radius:50%;background:var(--green-bg);border:1px solid var(--green-border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--green);font-family:var(--mono);">${i+1}</div>
+          <div>
+            <div style="font-size:13px;font-weight:500;">${b.cara}</div>
+            <div style="font-size:11px;color:var(--text-3);font-family:var(--mono);">${b.ket||''}${b.tgl?' · '+fmtDate(b.tgl):''}</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--green);">${rp(b.jumlah)}</div>
+        </div>`).join('') + (t.bayarRows.length>1?`
+        <div style="display:flex;justify-content:space-between;padding:8px 0;font-family:var(--mono);font-size:11px;">
+          <span style="color:var(--text-3)">TOTAL ${t.bayarRows.length} PEMBAYARAN</span>
+          <span style="font-weight:600;color:var(--green);">${rp(totalBayar)}</span>
+        </div>`:'')
+      : '<div style="font-size:13px;color:var(--text-3);font-style:italic;">Belum ada pembayaran</div>'}
+    </div>
+
+    ${t.catatan?`<div style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-2);background:var(--surface2);">${t.catatan}</div>`:''}
+
+    <div style="padding:14px 18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--text);padding:13px 16px;border-radius:var(--radius-sm);">
+        <span style="font-size:10px;font-family:var(--mono);color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.07em;">${t.sisa===0?'LUNAS':t.sisa<0?'KELEBIHAN BAYAR':'SISA TAGIHAN'}</span>
+        <span style="font-size:16px;font-weight:700;font-family:var(--mono);color:#fff;">${t.sisa===0?'Lunas ✓':rp(Math.abs(t.sisa))}</span>
+      </div>
+    </div>`;
+}
+
+/* ── Edit modal — with nota selection ── */
+let editSelNotas = new Set(), editSelKredit = new Set();
+
+function openEdit(id) {
+  const t = TAGIHANLIST.find(x=>x.id===id);
+  if (!t) return;
+  editingId = id;
+  editSelNotas  = new Set((t.notaList||[]).map(n=>String(n)));
+  editSelKredit = new Set((t.kreditIds||[]).map(k=>String(k)));
+
+  document.getElementById('e-notag').value   = t.noTagihan;
+  document.getElementById('e-notag-sub').textContent = t.client + ' · ' + fmtDate(t.tanggal);
+  document.getElementById('e-client').value  = t.client;
+  document.getElementById('e-tanggal').value = t.tanggal;
+  document.getElementById('e-catatan').value = t.catatan||'';
+
+  // Populate bayar rows FIRST so updateEditTotal can read them
+  document.getElementById('e-bayar-list').innerHTML='';
+  (t.bayarRows||[]).forEach(r=>addEditBayarRow(r.cara,r.jumlah,r.ket,r.tgl));
+
+  // Populate kredit section
+  renderEditKreditSection(t);
+
+  // Render nota grid (calls updateEditTotal at end, bayar rows already populated)
+  renderEditNotaGrid(t);
+
+  document.getElementById('modal-edit').classList.add('open');
+}
+
+/* Store for search filtering */
+let _editAllNums = [];
+let _editTagId   = null;
+
+function renderEditKreditSection(t) {
+  const client = CLIENTS.find(c=>c.name===t.client)||{};
+  const available = KREDIT_POOL.filter(k =>
+    (k.client===t.client || (client.group && k.group===client.group && client.group!=='')) &&
+    !k.terpakai &&
+    k.fromTagihan !== t.noTagihan   // jangan tampilkan kredit dari tagihan itu sendiri
+  );
+  const sec = document.getElementById('e-kredit-section');
+  const lst = document.getElementById('e-kredit-list');
+  if (!available.length) { sec.style.display='none'; return; }
+  sec.style.display = 'block';
+  lst.innerHTML = available.map(k => {
+    const sel = editSelKredit.has(String(k.id));
+    return `<div class="kredit-card ${sel?'selected':''}" id="ekc-${k.id}" onclick="toggleEditKredit('${k.id}')">
+      <div class="kredit-chk-col">
+        <div class="kredit-chk" id="ekchk-${k.id}">
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+            <path d="M1 3.5L3.5 6.5L9 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="kredit-info">
+        <div class="kredit-from">Tagihan ${k.fromTagihan||'—'}</div>
+        <div class="kredit-sub">${fmtDate(k.tanggal)} · ${k.client}</div>
+      </div>
+      <div class="kredit-amount">${rp(k.jumlah)}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleEditKredit(id) {
+  const card = document.getElementById(`ekc-${id}`);
+  if (!card) return;
+  if (editSelKredit.has(String(id))) { editSelKredit.delete(String(id)); card.classList.remove('selected'); }
+  else                                { editSelKredit.add(String(id));   card.classList.add('selected'); }
+  const t = TAGIHANLIST.find(x=>x.id===editingId);
+  updateEditTotal(t);
+}
+
+function renderEditNotaGrid(t) {
+  const client = CLIENTS.find(c=>c.name===t.client)||{};
+
+  // Only show notas that belong to this client/group AND:
+  // - status kosong (belum ditagih), OR
+  // - nomor tagihan sama dengan tagihan yang sedang diedit (t.notaList)
+  const thisNotaSet = new Set((t.notaList||[]).map(n=>String(n)));
+
+  const clientNotas = ALL_NOTAS.filter(n => {
+    const isClient = n.client===t.client ||
+      (client.group && n.group===client.group && client.group!=='');
+    if (!isClient) return false;
+
+    const statusKosong  = !n.status || n.status.trim() === '';
+    const milikTagihanIni = thisNotaSet.has(String(n.nota));
+    return statusKosong || milikTagihanIni;
+  });
+
+  _editAllNums = [...new Set([...(t.notaList||[]), ...clientNotas.map(n=>n.nota)])];
+  _editTagId   = t.id;
+  const searchEl = document.getElementById('e-nota-search');
+  if (searchEl) searchEl.value = '';
+  renderEditNotaRows(_editAllNums, clientNotas, t);
+  updateEditTotal(t);
+}
+
+function renderEditNotaRows(nums, clientNotas, t) {
+  const grid = document.getElementById('e-nota-grid');
+  if (!nums.length) {
+    grid.innerHTML = '<div style="padding:20px;font-size:13px;color:var(--text-3);font-style:italic;text-align:center;">Tidak ada nota</div>';
+    return;
+  }
+  const sorted = [...nums].sort((a,b) => {
+    const ac = editSelNotas.has(a)?0:1, bc = editSelNotas.has(b)?0:1;
+    if (ac!==bc) return ac-bc;
+    // Within each group sort newest first by tanggal
+    const na = clientNotas.find(x=>x.nota===a);
+    const nb = clientNotas.find(x=>x.nota===b);
+    return ((nb&&nb.tanggal)||'').localeCompare((na&&na.tanggal)||'');
+  });
+  grid.innerHTML = sorted.map(num => {
+    const n = clientNotas.find(x=>x.nota===num);
+    return notaRowHTML(num, n, editSelNotas.has(num), t.id);
+  }).join('');
+}
+
+function notaRowHTML(num, n, checked, tagId) {
+  const rowBg = checked ? 'background:var(--green-bg);' : 'background:var(--surface);';
+  const rowBorder = checked ? 'border-left:4px solid var(--green);' : 'border-left:4px solid transparent;';
+  const tick = checked
+    ? `<div style="width:24px;height:24px;border-radius:6px;background:var(--green);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="12" height="10" viewBox="0 0 12 10" fill="none"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`
+    : `<div style="width:24px;height:24px;border-radius:6px;background:var(--surface);border:2px solid var(--border);flex-shrink:0;"></div>`;
+  return `<div onclick="toggleEditNota('${num}','${tagId}')" id="enl-${num}"
+    style="${rowBg}${rowBorder}display:grid;grid-template-columns:36px 1fr 80px 110px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;">
+    <div style="display:flex;align-items:center;">${tick}</div>
+    <div style="min-width:0;overflow:hidden;">
+      <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:${checked?'var(--green)':'var(--text)'};">Nota ${num}</div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:1px;">${n?n.client:'—'}</div>
+    </div>
+    <div style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-align:right;">${n?fmtDate(n.tanggal):'—'}</div>
+    <div style="font-family:var(--mono);font-size:13px;font-weight:700;text-align:right;color:${checked?'var(--green)':'var(--text)'};">${n?rp(n.total):'—'}</div>
+  </div>`;
+}
+
+function filterEditNota(q) {
+  const t = TAGIHANLIST.find(x=>x.id===_editTagId);
+  if (!t) return;
+  const client = CLIENTS.find(c=>c.name===t.client)||{};
+  const clientNotas = ALL_NOTAS.filter(n =>
+    n.client===t.client ||
+    (client.group && n.group===client.group && client.group!=='')
+  );
+  const filtered = q.trim()
+    ? _editAllNums.filter(num => {
+        const n = clientNotas.find(x=>x.nota===num);
+        return num.includes(q.trim()) || (n&&n.client.toLowerCase().includes(q.toLowerCase()));
+      })
+    : _editAllNums;
+  renderEditNotaRows(filtered, clientNotas, t);
+}
+
+function toggleEditNota(num, tagId) {
+  if (editSelNotas.has(num)) editSelNotas.delete(num);
+  else editSelNotas.add(num);
+  const t = TAGIHANLIST.find(x=>x.id===tagId);
+  const client = CLIENTS.find(c=>c.name===(t&&t.client))||{};
+  const clientNotas = ALL_NOTAS.filter(n =>
+    n.client===(t&&t.client) ||
+    (client.group && n.group===client.group && client.group!=='')
+  );
+  const n = clientNotas.find(x=>x.nota===num);
+  const row = document.getElementById('enl-'+num);
+  if (row) row.outerHTML = notaRowHTML(num, n, editSelNotas.has(num), tagId);
+  updateEditTotal(t);
+}
+
+function updateEditTotal(t) {
+  const normalizeNota = s => String(s).replace(/\.0$/, '');
+
+  const totalTagihan = [...editSelNotas].reduce((s, num) => {
+    const nNum = normalizeNota(num);
+    const n = ALL_NOTAS.find(x => normalizeNota(x.nota) === nNum);
+    return s + (n ? (+n.total || 0) : 0);
+  }, 0);
+
+  const bayarRows      = getBayarRows('e-bayar-list');
+  const totalBayarCash = bayarRows.reduce((s, r) => s + (+r.jumlah || 0), 0);
+  const kreditUsed     = KREDIT_POOL
+    .filter(k => editSelKredit.has(String(k.id)))
+    .reduce((s,k) => s+(+k.jumlah||0), 0);
+  const totalBayar     = totalBayarCash + kreditUsed;
+  const sisa           = totalTagihan - totalBayar;
+
+  document.getElementById('e-total-preview').textContent = rp(totalTagihan);
+  const bayarEl = document.getElementById('e-total-bayar');
+  if (bayarEl) bayarEl.textContent = rp(totalBayar);
+  const sisaEl  = document.getElementById('e-total-sisa');
+  const sisaLbl = document.getElementById('e-sisa-lbl');
+  if (sisaEl) {
+    sisaEl.textContent  = rp(Math.abs(sisa));
+    sisaEl.style.color  = sisa > 0 ? 'var(--accent)' : sisa < 0 ? 'var(--blue)' : 'var(--green)';
+  }
+  if (sisaLbl) sisaLbl.textContent = sisa < 0 ? 'Kelebihan Bayar' : 'Sisa';
+  document.getElementById('e-nota-meta').textContent = `${editSelNotas.size} nota dipilih`;
+}
+
+
+function closeEdit(){
+  document.getElementById('modal-edit').classList.remove('open');
+  editingId=null;
+}
+
+async function saveEdit() {
+  const id = editingId;
+  if (!id) return;
+  const idx = TAGIHANLIST.findIndex(x=>x.id===id);
+  if (idx<0) return;
+
+  const bayarRows      = getBayarRows('e-bayar-list');
+  const totalBayarCash = bayarRows.reduce((s,r)=>s+r.jumlah,0);
+  const kreditIds      = [...editSelKredit];
+  const kreditUsed     = KREDIT_POOL.filter(k=>editSelKredit.has(String(k.id))).reduce((s,k)=>s+(+k.jumlah||0),0);
+  const totalBayar     = totalBayarCash + kreditUsed;
+  const notaList       = [...editSelNotas];
+
+  // Use ALL_NOTAS so already-tagged notas can be found
+  const normalizeN = s => String(s).replace(/\.0$/,'');
+  const totalTagihan = notaList.reduce((s,num) => {
+    const n = ALL_NOTAS.find(x => normalizeN(x.nota)===normalizeN(num));
+    return s + (n ? (+n.total||0) : 0);
+  }, 0) || TAGIHANLIST[idx].totalTagihan;
+
+  // Build notaIds (full IDs) from nota numbers for GAS lookup
+  const origNotaIds   = TAGIHANLIST[idx].notaIds || [];
+  const origNotaList  = (TAGIHANLIST[idx].notaList || []).map(String);
+  const notaIds = notaList.map(num => {
+    const nNum = normalizeN(num);
+    const n = ALL_NOTAS.find(x => normalizeN(x.nota)===nNum);
+    if(n && n.id) return n.id;
+    const origIdx = origNotaList.findIndex(n => normalizeN(n)===nNum);
+    if(origIdx >= 0 && origNotaIds[origIdx]) return String(origNotaIds[origIdx]);
+    return null;
+  }).filter(Boolean);
+
+  const sisa   = totalTagihan - totalBayar;
+  const status = totalBayar===0?'PENDING':sisa===0?'LUNAS':sisa<0?'KREDIT':'PENDING';
+
+  TAGIHANLIST[idx] = {
+    ...TAGIHANLIST[idx],
+    noTagihan:    document.getElementById('e-notag').value.trim(),
+    tanggal:      document.getElementById('e-tanggal').value,
+    catatan:      document.getElementById('e-catatan').value.trim(),
+    notaList, notaIds, notas: notaList.length,
+    bayarRows, kreditIds, kreditUsed,
+    totalBayar, totalTagihan, sisa, status,
+  };
+
+  closeEdit();
+  renderDaftar();
+  openDetail(id);
+  showToast('✓ Tagihan diperbarui!', true);
+  MK_CACHE.bust('getTagihan');
+  MK_CACHE.bust('getKredit');
+  MK_CACHE.bust('getAllNotas');
+  MK_CACHE.bust('getNotaBelumTagih');
+  try { await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateTagihan',...TAGIHANLIST[idx]})}); } catch(e){}
+}
+
+/* ── Combine tagihan ── */
+let combineSourceId = null;
+let combineSelIds   = new Set();
+
+function openCombine(id) {
+  const t = TAGIHANLIST.find(x=>x.id===id);
+  if (!t) return;
+  combineSourceId = id;
+  combineSelIds   = new Set();
+
+  // Find group for this client
+  const clientObj = CLIENTS.find(c=>c.name===t.client)||{};
+  const group = clientObj.group||'';
+  const groupLabel = group ? ` (Grup: ${group})` : '';
+
+  document.getElementById('comb-sub').textContent = `${t.client}${groupLabel}`;
+  document.getElementById('comb-source').textContent = `${t.noTagihan} · ${t.notas} nota · ${rp(t.totalTagihan)}`;
+
+  // Other tagihan: same client OR same group
+  const others = TAGIHANLIST.filter(x => {
+    if (x.id === id) return false;
+    if (x.client === t.client) return true;
+    if (group) {
+      const xClient = CLIENTS.find(c=>c.name===x.client)||{};
+      if (xClient.group && xClient.group===group) return true;
+    }
+    return false;
+  });
+
+  const list = document.getElementById('comb-list');
+  if (!others.length) {
+    list.innerHTML = '<div style="padding:14px;font-size:13px;color:var(--text-3);font-style:italic;">Tidak ada tagihan lain yang bisa digabungkan.</div>';
+  } else {
+    list.innerHTML = others.map(o => {
+      const sc = o.status==='LUNAS'?'sb-lunas':o.status==='KREDIT'?'sb-kredit':'sb-pending';
+      const sameClient = o.client===t.client;
+      return `<label style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;" id="cml-${o.id}">
+        <input type="checkbox" onchange="toggleCombine('${o.id}')" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-family:var(--mono);font-size:13px;font-weight:500;">${o.noTagihan}</span>
+            <span class="sbadge ${sc}">${o.status}</span>
+            ${!sameClient?`<span style="font-size:10px;font-family:var(--mono);background:var(--blue-bg);color:var(--blue);border-radius:999px;padding:1px 7px;">Grup</span>`:''}
+          </div>
+          <div style="font-size:11px;color:var(--text-3);font-family:var(--mono);margin-top:2px;">
+            ${o.client} · ${fmtDate(o.tanggal)} · ${o.notas} nota · ${rp(o.totalTagihan)}
+          </div>
+        </div>
+      </label>`;
+    }).join('');
+  }
+
+  // Generate default new noTagihan
+  const d = new Date();
+  const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.getMonth()+1).padStart(2,'0'), yy=String(d.getFullYear()).slice(2);
+  const alias = (t.client.slice(0,3)).toUpperCase();
+  document.getElementById('comb-notag').value = `${alias}-GABUNG-${dd}${mm}${yy}-00`;
+
+  updateCombineRingkasan();
+  document.getElementById('modal-combine').classList.add('open');
+}
+
+function toggleCombine(id) {
+  if (combineSelIds.has(id)) combineSelIds.delete(id);
+  else combineSelIds.add(id);
+  const lbl = document.getElementById('cml-'+id);
+  if (lbl) lbl.style.background = combineSelIds.has(id) ? 'var(--accent-bg)' : '';
+  updateCombineRingkasan();
+}
+
+function updateCombineRingkasan() {
+  const src    = TAGIHANLIST.find(x=>x.id===combineSourceId);
+  const others = [...combineSelIds].map(id=>TAGIHANLIST.find(x=>x.id===id)).filter(Boolean);
+  const all    = [src, ...others];
+  const totalNota    = all.reduce((s,t)=>s+(t.notaList||[]).length,0);
+  const totalTagihan = all.reduce((s,t)=>s+t.totalTagihan,0);
+  const totalBayar   = all.reduce((s,t)=>s+t.totalBayar,0);
+  const sisa         = totalTagihan - totalBayar;
+  const sisaColor    = sisa<0?'var(--blue)':sisa>0?'var(--accent)':'var(--text-3)';
+
+  document.getElementById('comb-r-nota').textContent    = `${totalNota} nota`;
+  document.getElementById('comb-r-tagihan').textContent = rp(totalTagihan);
+  document.getElementById('comb-r-bayar').textContent   = rp(totalBayar);
+  document.getElementById('comb-r-sisa').textContent    = sisa===0?'Lunas':rp(Math.abs(sisa));
+  document.getElementById('comb-r-sisa').style.color    = sisaColor;
+  document.getElementById('btn-combine').disabled       = combineSelIds.size === 0;
+}
+
+function closeCombine() {
+  document.getElementById('modal-combine').classList.remove('open');
+  combineSourceId=null; combineSelIds.clear();
+}
+
+async function saveCombine() {
+  const src    = TAGIHANLIST.find(x=>x.id===combineSourceId);
+  const others = [...combineSelIds].map(id=>TAGIHANLIST.find(x=>x.id===id)).filter(Boolean);
+  if (!src || !others.length) return;
+
+  const all          = [src, ...others];
+  const notaList     = all.flatMap(t=>t.notaList||[]);
+  const bayarRows    = all.flatMap(t=>t.bayarRows||[]);
+  const totalTagihan = all.reduce((s,t)=>s+t.totalTagihan,0);
+  const totalBayar   = bayarRows.reduce((s,b)=>s+b.jumlah,0);
+  const sisa         = totalTagihan - totalBayar;
+  const status       = totalBayar===0?'PENDING':sisa===0?'LUNAS':sisa<0?'KREDIT':'PENDING';
+  const noTagihan    = document.getElementById('comb-notag').value.trim() || src.noTagihan+'-G';
+
+  const merged = {
+    id: 'gabung_'+Date.now(),
+    noTagihan, client: src.client,
+    tanggal: jakartaDate(),
+    notas: notaList.length, notaList,
+    periode: src.periode, // approximate
+    totalTagihan, totalBayar, sisa, status,
+    bayarRows,
+    catatan: `Gabungan dari: ${all.map(t=>t.noTagihan).join(', ')}`,
+  };
+
+  // Remove old, add merged
+  const removeIds = new Set([combineSourceId, ...combineSelIds]);
+  TAGIHANLIST = TAGIHANLIST.filter(t=>!removeIds.has(t.id));
+  TAGIHANLIST.unshift(merged);
+
+  closeCombine();
+  renderDaftar();
+  openDetail(merged.id);
+  showToast('✓ Tagihan berhasil digabungkan!', true);
+  MK_CACHE.bust('getTagihan'); MK_CACHE.bust('getKredit'); try { await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'combineTagihan',...merged,removedIds:[...removeIds]})}); } catch(e){}
+}
+
+/* ── Reset ── */
+function resetForm() {
+  selClient=null; selNotas.clear(); selKredit.clear();
+  ['f-client','f-notag','f-catatan'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-tanggal').value = jakartaDate();
+  document.getElementById('bayar-list').innerHTML='';
+  document.getElementById('nota-grid').innerHTML='<div class="nota-empty-state">Pilih pelanggan terlebih dahulu</div>';
+  document.getElementById('nota-group-card').style.display='none';
+  document.getElementById('nota-group-grid').innerHTML='<div class="nota-empty-state">Tidak ada nota grouping</div>';
+  document.getElementById('client-strip').classList.remove('show');
+  document.getElementById('client-meta-top').textContent='belum dipilih';
+  document.getElementById('nota-group-lbl').textContent='';
+  document.getElementById('nota-sel-meta').textContent='0 nota dipilih';
+  document.getElementById('nota-group-meta').textContent='0 nota dipilih';
+  document.getElementById('kredit-card').style.display='none';
+  updateChkAll();
+  updateRingkasan();
+}
+
+/* ── Helpers ── */
+function rp(n){ return n!=null?'Rp '+(+n||0).toLocaleString('id-ID'):'—'; }
+function fmtDate(d){ return d?new Date(d).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'2-digit'}):'—'; }
+function fmtDateFull(d){ return d?new Date(d).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}):'—'; }
+
+/* ── Print Tagihan (A4) ── */
+function printTagihan(id) {
+  const t = TAGIHANLIST.find(x=>x.id===id);
+  if(!t) return;
+
+  const fP = d => {
+    if(!d) return '—';
+    const dt = new Date(d+'T00:00:00');
+    if(isNaN(dt)) return '—';
+    return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getFullYear()).slice(2)}`;
+  };
+  const N = n => (+n||0).toLocaleString('id-ID');
+  const normalN = s => String(s).replace(/\.0$/,'');
+
+  const notaObjs = (t.notaList||[]).map(num =>
+    ALL_NOTAS.find(n=>normalN(n.nota)===normalN(num)) ||
+    NOTAS.find(n=>normalN(n.nota)===normalN(num))
+  ).filter(Boolean);
+  notaObjs.sort((a,b)=>(+b.nota||0)-(+a.nota||0));
+
+  let tSub=0, tRet=0, tFinal=0;
+  const rows = notaObjs.map(n => {
+    const ret = +(n.retur||n.ret||0);
+    const tot = +n.total||0;
+    let   sub = +n.subtotal||0;
+    if(!sub && tot) sub = tot + ret;
+    tSub+=sub; tRet+=ret; tFinal+=tot;
+    return `<tr>
+      <td>${n.client||n.nama||''}</td>
+      <td>${fP(n.tanggal)}</td>
+      <td class="mono center">${n.nota}</td>
+      <td class="num">${N(sub)}</td>
+      <td class="num">${ret>0?N(ret):'—'}</td>
+      <td class="num">${N(tot)}</td>
+      <td class="note">${n.catatan||''}</td>
+    </tr>`;
+  }).join('');
+
+  const totalRow = `<tr class="total-row">
+    <td colspan="2">${notaObjs.length} Nota</td>
+    <td></td>
+    <td class="num">${N(tSub)}</td>
+    <td class="num">${tRet>0?N(tRet):'—'}</td>
+    <td class="num">${N(tFinal)}</td>
+    <td></td>
+  </tr>`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>${t.noTagihan||'Tagihan'}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Calibri','Segoe UI',Arial,sans-serif;font-size:11pt;color:#000;background:#fff;padding:20mm 15mm;}
+    .hdr{margin-bottom:16pt;}
+    .hdr div{margin-bottom:5pt;font-size:11pt;}
+    table{width:100%;border-collapse:collapse;font-size:10pt;margin-top:10pt;}
+    th,td{border:1px solid #999;padding:5pt 8pt;vertical-align:middle;}
+    th{text-align:left;font-weight:700;font-size:9.5pt;}
+    .num{text-align:right;font-family:'Courier New',monospace;}
+    .mono{font-family:'Courier New',monospace;}
+    .center{text-align:center;}
+    .note{font-size:9pt;color:#555;}
+    .total-row td{font-weight:700;border-top:1px solid #999;}
+    @page{size:A4;margin:15mm 12mm;}
+    @media print{body{padding:0;}}
+  </style>
+  </head><body>
+  <div class="hdr">
+    <div><strong>No. Tagihan</strong> : ${t.noTagihan||'—'}</div>
+    <div><strong>Tanggal</strong> : ${fP(t.tanggal)}</div>
+  </div>
+  <table>
+    <thead><tr>
+      <th style="width:16%">Nama</th>
+      <th style="width:11%">Tanggal Nota</th>
+      <th style="width:8%;text-align:center">Nota</th>
+      <th style="width:18%;text-align:right">Sub-Total</th>
+      <th style="width:11%;text-align:right">RT / Pot</th>
+      <th style="width:18%;text-align:right">Total</th>
+      <th>Catatan</th>
+    </tr></thead>
+    <tbody>${rows}${totalRow}</tbody>
+  </table>
+  <script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500);}<\/script>
+  </body></html>`;
+
+  const w = window.open('','_blank','width=1100,height=800,left=100,top=80');
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
+function periode(notas){
+  if(!notas||!notas.length) return '';
+  const dates=notas.map(n=>new Date(n.tanggal)).filter(d=>!isNaN(d)).sort((a,b)=>a-b);
+  if(!dates.length) return '';
+  const f=d=>d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'2-digit'});
+  return dates.length===1?f(dates[0]):`${f(dates[0])} — ${f(dates[dates.length-1])}`;
+}
+function showToast(msg,ok){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast '+(ok?'ok':'err');
+  el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+/* ── Mock data ── */
+const MC=[];
+const MN=[];
+const MT=[];
+const MK=[];
+</script>
+<script src="mk-responsive.js"></script>
+</body>
+</html>

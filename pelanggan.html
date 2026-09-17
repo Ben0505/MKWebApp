@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pelanggan — CV. Miki Kijang</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F2ED;--surface:#FFFFFF;--surface2:#F0EDE8;
+    --border:#D9D4CC;--border-dark:#2D2926;
+    --text:#1A1714;--text-2:#6B6560;--text-3:#9E9891;
+    --accent:#C4501A;--accent-bg:#FDF1EC;--accent-border:#E8B09A;
+    --green:#1A6B45;--green-bg:#EDF6F1;--green-border:#9FE1CB;
+    --amber:#8B5C00;--amber-bg:#FEF8EC;
+    --blue:#185FA5;--blue-bg:#E6F1FB;--blue-border:#B5D4F4;
+    --radius:10px;--radius-sm:6px;
+    --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+  .app{display:grid;grid-template-columns:210px 1fr;min-height:100vh;}
+  .sidebar{background:var(--text);padding:28px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+  .sidebar-logo{padding:0 20px 22px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:10px;}
+  .brand{font-family:var(--mono);font-size:13px;font-weight:500;color:rgba(255,255,255,0.9);letter-spacing:.05em;text-transform:uppercase;}
+  .sub{font-size:10px;color:rgba(255,255,255,0.3);margin-top:2px;font-family:var(--mono);}
+  .nav-section{padding:0 10px;margin-bottom:2px;}
+  .nav-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.22);padding:10px 8px 5px;font-family:var(--mono);}
+  .nav-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--radius-sm);color:rgba(255,255,255,0.45);font-size:13px;cursor:pointer;transition:all .15s;}
+  .nav-item:hover{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.8);}
+  .nav-item.active{background:var(--accent);color:#fff;font-weight:500;}
+  .nav-icon{font-size:14px;width:16px;text-align:center;}
+  .sidebar-footer{margin-top:auto;padding:14px 20px 0;border-top:1px solid rgba(255,255,255,0.07);}
+  .sidebar-date{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.25);line-height:1.7;}
+  .main{display:flex;flex-direction:column;min-height:100vh;}
+  .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;}
+  .topbar-title{font-size:14px;font-weight:600;}
+  .topbar-right{display:flex;align-items:center;gap:10px;}
+  .content{padding:22px 26px 40px;display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .card-header{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .card-header h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);}
+  .card-header .meta{font-size:11px;color:var(--text-3);font-family:var(--mono);}
+  .btn{font-family:var(--sans);font-size:13px;font-weight:500;padding:7px 16px;border-radius:var(--radius-sm);border:1px solid transparent;cursor:pointer;transition:all .14s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+  .btn-primary{background:var(--text);color:#fff;}
+  .btn-primary:hover{background:#2D2926;}
+  .btn-ghost{background:transparent;border-color:var(--border);color:var(--text-2);}
+  .btn-ghost:hover{background:var(--surface2);color:var(--text);}
+  .btn-danger{background:transparent;border-color:var(--border);color:#A32D2D;}
+  .btn-danger:hover{background:#FEF3F3;border-color:#A32D2D;}
+  .btn-sm{padding:5px 11px;font-size:12px;}
+  input,select,textarea{font-family:var(--sans);font-size:13px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 11px;width:100%;outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;appearance:none;}
+  input:focus,select:focus,textarea:focus{border-color:var(--border-dark);box-shadow:0 0 0 3px rgba(29,23,20,.06);}
+  input::placeholder,textarea::placeholder{color:var(--text-3);}
+  .sel{position:relative;}
+  .sel::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;font-size:11px;}
+  .sel select{padding-right:28px;cursor:pointer;}
+  .search-wrap{position:relative;flex:1;max-width:240px;}
+  .search-wrap input{padding:7px 11px 7px 32px;font-size:13px;}
+  .si{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:13px;pointer-events:none;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:10px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);}
+  .field label .req{color:var(--accent);}
+  .f2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+  /* ── ADAPTIVE: mobile (< 640px) ── */
+  .bottom-nav{display:none;}
+  .mobile-header{display:none;}
+  @media(max-width:639px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{display:none;}
+    .mobile-header{display:flex;position:sticky;top:0;z-index:30;background:var(--text);height:52px;align-items:center;justify-content:space-between;padding:0 16px;}
+    .mobile-header-title{font-size:15px;font-weight:600;color:#fff;}
+    .mobile-header-btn{background:rgba(255,255,255,.12);border:none;color:#fff;font-size:13px;font-family:var(--sans);padding:6px 12px;border-radius:var(--radius-sm);cursor:pointer;}
+    .topbar{display:none;}
+    .content{grid-template-columns:1fr;padding:0 0 80px;}
+    #detail-panel{display:none;}
+    .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;height:56px;background:var(--surface);border-top:1px solid var(--border);z-index:30;}
+    .bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--text-3);font-size:10px;font-family:var(--mono);}
+    .bn-item.active{color:var(--accent);}
+    .bn-icon{font-size:18px;line-height:1;}
+    .content .card:first-child{border-radius:0;border-left:none;border-right:none;position:static!important;}
+    #plg-list{max-height:none!important;}
+    .topbar-right .search-wrap{display:none;}
+    .mobile-search{display:block;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:52px;z-index:20;}
+    .mobile-search input{background:var(--surface2);border-radius:999px;padding:8px 14px 8px 34px;}
+
+    /* ── Tab tagihan: tabel jadi kartu ── */
+    .hk-table thead{display:none;}
+    .hk-table tr{display:block;border-bottom:1px solid var(--border);padding:10px 14px;}
+    .hk-table td{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border:none;font-size:12px;}
+    .hk-table td::before{content:attr(data-lbl);font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0;margin-right:8px;}
+    .hk-table td:last-child{text-align:right;}
+    /* Tabs scroll horizontally */
+    .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding:0 12px;}
+    .tab{white-space:nowrap;padding:10px 12px;font-size:11px;}
+    .tab-content{padding:12px;}
+    /* Stats strip: 3→2 cols */
+    .stats-strip{grid-template-columns:1fr 1fr;}
+    .stats-strip .stat-item:last-child{border-right:none;grid-column:1/-1;border-top:1px solid var(--border);}
+
+    /* ── Detail tagihan modal: full-screen on mobile ── */
+    #modal-tagihan{padding:0;align-items:stretch;}
+    #modal-tagihan .modal{max-width:100%!important;border-radius:0;max-height:100vh;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+    .modal-tagihan-body{grid-template-columns:1fr!important;height:auto!important;flex:1;}
+    .modal-tagihan-left{height:50vh!important;overflow-y:auto!important;border-right:none!important;border-bottom:1px solid var(--border);}
+    .modal-tagihan-right{height:auto!important;max-height:35vh;}
+    .modal-tagihan-right-scroll{overflow-y:auto;max-height:200px;}
+
+    /* ── Edit modal: full-screen sheet ── */
+    .modal-bd{padding:0;align-items:flex-end;}
+    .modal{max-width:100%!important;border-radius:18px 18px 0 0;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;}
+    .modal-inner{max-height:calc(92vh - 120px);overflow-y:auto;}
+    .f2,.f3{grid-template-columns:1fr!important;}
+    /* Edit modal: harga khusus form row */
+    .hk-form-row{grid-template-columns:20px 1fr 70px 90px 26px;}
+  }
+  /* ── ADAPTIVE: tablet (640–839px) ── */
+  @media(min-width:640px) and (max-width:839px){
+    .app{grid-template-columns:64px 1fr;}
+    .sidebar{padding:16px 0;}
+    .sidebar-logo,.nav-label,.nav-item span:not(.nav-icon),.sidebar-footer{display:none;}
+    .sidebar{width:64px;align-items:center;}
+    .nav-item{justify-content:center;padding:10px;width:44px;border-radius:var(--radius-sm);}
+    .nav-icon{width:auto;font-size:18px;}
+    .content{grid-template-columns:280px 1fr;padding:16px 18px 40px;}
+    /* Tablet: detail modal narrower 2-col */
+    .modal-tagihan-body{grid-template-columns:1fr 260px!important;}
+    .modal-tagihan-left{height:60vh!important;}
+    .modal-tagihan-right{height:60vh!important;}
+    .modal-tagihan-right-scroll{flex:1;}
+  }
+
+  /* ── Sheet overlay (mobile detail) ── */
+  .sheet-overlay{position:fixed;inset:0;background:rgba(26,23,20,.5);z-index:80;display:none;align-items:flex-end;}
+  .sheet-overlay.open{display:flex;}
+  .detail-sheet{background:var(--surface);border-radius:18px 18px 0 0;width:100%;max-height:88vh;display:flex;flex-direction:column;animation:slideUp .25s ease;}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0;flex-shrink:0;}
+  .sheet-hd{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .sheet-hd-title{font-size:15px;font-weight:600;}
+  .sheet-close{background:var(--surface2);border:none;font-size:16px;color:var(--text-2);width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .sheet-body{overflow-y:auto;flex:1;}
+  .mobile-search{display:none;} /* hidden on desktop/tablet */
+  .plg-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;}
+  .plg-item:last-child{border-bottom:none;}
+  .plg-item:hover{background:var(--surface2);}
+  .plg-item.active{background:var(--accent-bg);border-right:3px solid var(--accent);}
+  .plg-avatar{width:34px;height:34px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--text-2);font-family:var(--mono);flex-shrink:0;}
+  .plg-item.active .plg-avatar{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);}
+  .plg-name{font-size:13px;font-weight:500;}
+  .plg-city{font-size:11px;color:var(--text-3);}
+  .plg-badge{margin-left:auto;font-size:10px;font-family:var(--mono);background:var(--amber-bg);color:var(--amber);border-radius:999px;padding:2px 7px;white-space:nowrap;}
+  .plg-badge.kredit{background:var(--green-bg);color:var(--green);}
+
+  /* Group styles */
+  .group-block{border-bottom:1px solid var(--border);}
+  .group-block:last-child{border-bottom:none;}
+  .group-header{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;background:var(--surface2);border-bottom:1px solid var(--border);user-select:none;transition:background .1s;}
+  .group-header:hover{background:#E8E4DE;}
+  .group-arrow{font-size:10px;color:var(--text-3);transition:transform .2s;flex-shrink:0;}
+  .group-arrow.open{transform:rotate(90deg);}
+  .group-name{font-size:12px;font-weight:600;color:var(--text);font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em;}
+  .group-count{margin-left:4px;font-size:10px;color:var(--text-3);font-family:var(--mono);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:1px 7px;}
+  .group-members{display:none;}
+  .group-members.open{display:block;}
+
+  /* Detail panel (right) */
+  .detail-empty{padding:48px 24px;text-align:center;color:var(--text-3);}
+  .detail-empty .icon{font-size:28px;margin-bottom:10px;}
+
+  /* Section tabs inside detail */
+  .tabs{display:flex;border-bottom:1px solid var(--border);padding:0 18px;}
+  .tab{padding:10px 14px;font-size:12px;font-weight:500;color:var(--text-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .tab-content{display:none;padding:18px;}
+  .tab-content.active{display:block;}
+
+  /* Info grid */
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .info-item{display:flex;flex-direction:column;gap:3px;}
+  .info-lbl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mono);}
+  .info-val{font-size:13px;font-weight:500;color:var(--text);}
+  .info-val.muted{color:var(--text-3);font-weight:400;font-style:italic;}
+  .info-val.warn{color:var(--accent);}
+  .info-val.good{color:var(--green);}
+
+  /* Status badges */
+  .sbadge{display:inline-block;font-size:10px;font-weight:500;font-family:var(--mono);padding:2px 9px;border-radius:999px;}
+  .sb-lunas{background:var(--green-bg);color:var(--green);}
+  .sb-pending{background:var(--amber-bg);color:var(--amber);}
+  .sb-kredit{background:var(--blue-bg);color:var(--blue);}
+  .s-lunas{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+  .s-pending{background:var(--amber-bg);color:var(--amber);border:1px solid #D4A843;}
+  .s-kredit{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border);}
+
+  /* Harga khusus table */
+  .hk-table{width:100%;border-collapse:collapse;}
+  .hk-table th{text-align:left;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);font-family:var(--mono);padding:0 12px 8px;border-bottom:1px solid var(--border);}
+  .hk-table td{padding:9px 12px;font-size:13px;border-bottom:1px solid var(--surface2);vertical-align:middle;}
+  .hk-table td:last-child{text-align:right;}
+  .hk-table tr:last-child td{border-bottom:none;}
+  .override-badge{display:inline-block;font-size:10px;font-family:var(--mono);background:var(--accent-bg);color:var(--accent);border-radius:4px;padding:1px 6px;margin-left:6px;}
+  .std-price{font-size:11px;color:var(--text-3);font-family:var(--mono);text-decoration:line-through;}
+
+  /* Harga khusus form row */
+  .hk-form-row{display:grid;grid-template-columns:20px 1fr 80px 110px 26px;gap:8px;align-items:start;margin-bottom:8px;animation:up .15s ease;}
+  .hk-form-row input,.hk-form-row select{padding:7px 9px;font-size:13px;}
+  .hk-drag-handle{cursor:grab;color:var(--border-dark);opacity:.35;font-size:14px;padding-top:9px;user-select:none;text-align:center;line-height:1;}
+  .hk-drag-handle:hover{opacity:.7;}
+  .hk-form-row.drag-over{outline:2px dashed var(--accent);outline-offset:2px;border-radius:4px;}
+  .hk-form-row.dragging{opacity:.4;}
+  .hk-preview{grid-column:1/-1;font-size:11px;font-family:var(--mono);color:var(--text-3);padding:3px 4px;min-height:16px;}
+  .rp-w{position:relative;}
+  .rp-w span{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text-3);font-family:var(--mono);pointer-events:none;}
+  .rp-w input{padding-left:24px;font-family:var(--mono);text-align:right;}
+  .rm{background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;line-height:1;border-radius:4px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;}
+  .rm:hover{color:#A32D2D;}
+  .add-hk{display:flex;align-items:center;gap:6px;background:none;border:1px dashed var(--border);border-radius:var(--radius-sm);color:var(--text-2);font-size:12px;font-family:var(--sans);padding:6px 12px;cursor:pointer;width:100%;margin-top:6px;transition:all .14s;}
+  .add-hk:hover{border-color:var(--border-dark);color:var(--text);background:var(--surface2);}
+
+  /* Stats strip */
+  .stats-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid var(--border);}
+  .stat-item{padding:14px 18px;border-right:1px solid var(--border);}
+  .stat-item:last-child{border-right:none;}
+  .stat-lbl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mono);margin-bottom:4px;}
+  .stat-val{font-size:16px;font-weight:600;font-family:var(--mono);}
+  .stat-val.warn{color:var(--accent);}
+  .stat-val.good{color:var(--green);}
+  .stat-sub{font-size:11px;color:var(--text-3);margin-top:2px;font-family:var(--mono);}
+
+  /* Modal */
+  .modal-bd{position:fixed;inset:0;background:rgba(26,23,20,.45);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
+  .modal-bd.open{display:flex;}
+  .modal{background:var(--surface);border-radius:var(--radius);width:100%;max-width:520px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:up .2s ease;}
+  .modal-hd{padding:15px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .modal-hd h3{font-size:14px;font-weight:600;}
+  .modal-x{background:none;border:none;font-size:20px;color:var(--text-3);cursor:pointer;line-height:1;}
+  .modal-x:hover{color:var(--text);}
+  .modal-inner{padding:18px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;flex:1;}
+  .modal-ft{padding:13px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;}
+  .section-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-family:var(--mono);padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:2px;}
+
+  .toast{position:fixed;bottom:22px;right:22px;background:var(--text);color:#fff;font-size:13px;padding:11px 16px;border-radius:var(--radius);display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.13);transform:translateY(70px);opacity:0;transition:all .3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;}
+  .toast.show{transform:translateY(0);opacity:1;}
+  .toast.ok{border-left:3px solid #4CAF82;}
+  .toast.err{border-left:3px solid var(--accent);}
+
+  @keyframes up{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+  ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+<script src="mk-config.js"></script>
+<script src="auth.js"></script>
+<script src="mk-net.js"></script>
+<style id="mk-layout-fix">
+/* Layout handled by auth.js — override old grid */
+.app{display:flex!important;min-height:100vh;}
+.sidebar{position:fixed!important;top:0;left:0;bottom:0;}
+@media(min-width:1024px){.main{margin-left:210px!important;}}
+@media(min-width:640px) and (max-width:1023px){.main{margin-left:60px!important;}}
+@media(max-width:639px){.main{margin-left:0!important;}}
+/* Hide old mobile-only elements */
+.bottom-nav{display:none!important;}
+.m-header{display:none!important;}
+.mobile-header{display:none!important;}
+.mobile-search{display:none!important;}
+</style>
+<!-- mobile-pelanggan.html -->
+<style>
+@media(max-width:639px){
+  .content{grid-template-columns:1fr!important;padding:calc(52px + 10px) 0 40px!important;}
+  .f2,.f3{grid-template-columns:1fr!important;}
+  .hk-form-row{grid-template-columns:20px 1fr 70px 90px 26px!important;}
+  .modal{max-width:100%!important;}
+}
+@media(min-width:640px) and (max-width:1023px){
+  .content{grid-template-columns:1fr!important;padding:16px 18px 40px!important;}
+  .f2{grid-template-columns:1fr 1fr!important;}
+  .f3{grid-template-columns:1fr 1fr!important;}
+}
+</style>
+<link rel="stylesheet" href="mk-responsive.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="d-sidebar"></aside>
+
+  <main class="main">
+    <!-- Mobile header (hidden on desktop) -->
+    <div class="mobile-header">
+      <div class="mobile-header-title">👥 Pelanggan</div>
+      <button class="mobile-header-btn" onclick="openModal()">＋ Tambah</button>
+    </div>
+
+    <div class="topbar">
+      <span id="d-topbar-user" style="font-size:12px;color:var(--text-3);font-family:'DM Mono',monospace;margin-left:auto;"></span>
+      <div id="m-av" style="display:none;"></div>
+      <div class="topbar-title">👥 Pelanggan</div>
+      <div class="topbar-right">
+        <div class="search-wrap">
+          <span class="si">🔍</span>
+          <input type="text" id="search" placeholder="Cari pelanggan..." oninput="renderList()">
+        </div>
+        <button class="btn btn-primary" onclick="openModal()">＋ Tambah Pelanggan</button>
+      </div>
+    </div>
+
+    <!-- Mobile search (shown only on mobile, hidden on desktop via CSS) -->
+    <div class="mobile-search">
+      <div style="position:relative;">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:14px;pointer-events:none;">🔍</span>
+        <input type="text" id="search-mobile" placeholder="Cari pelanggan..." oninput="onMobileSearch(this.value)" style="">
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- Left: list pelanggan -->
+      <div class="card" style="position:sticky;top:70px;">
+        <div class="card-header">
+          <h2>Semua Pelanggan</h2>
+          <span class="meta" id="count-lbl">—</span>
+        </div>
+        <div id="plg-list" style="max-height:calc(100vh - 160px);overflow-y:auto;"></div>
+      </div>
+
+      <!-- Right: detail pelanggan (desktop/tablet only) -->
+      <div id="detail-panel">
+        <div class="card">
+          <div class="detail-empty">
+            <div class="icon">👆</div>
+            <p style="font-size:13px">Pilih pelanggan untuk melihat detail</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<!-- Mobile detail sheet -->
+<div class="sheet-overlay" id="mobile-sheet" onclick="if(event.target===this)closeMobileSheet()">
+  <div class="detail-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hd">
+      <div class="sheet-hd-title" id="sheet-title">—</div>
+      <button class="sheet-close" onclick="closeMobileSheet()">×</button>
+    </div>
+    <div class="sheet-body" id="sheet-body"></div>
+  </div>
+</div>
+
+<!-- Modal Tambah/Edit Pelanggan -->
+<div class="modal-bd" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3 id="modal-title">Tambah Pelanggan</h3>
+      <button class="modal-x" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-inner">
+      <div class="section-lbl">Informasi Dasar</div>
+      <div class="f2">
+        <div class="field"><label>Nama <span class="req">*</span></label><input type="text" id="m-nama" placeholder="cth. DANIEL"></div>
+        <div class="field"><label>Nama Alias</label><input type="text" id="m-alias" placeholder="cth. DNL"></div>
+      </div>
+      <div class="f3">
+        <div class="field"><label>Kota</label><input type="text" id="m-kota" placeholder="cth. Solo"></div>
+        <div class="field"><label>Grouping</label><input type="text" id="m-group" placeholder="cth. Daniel Group"></div>
+        <div class="field"><label>No. Kontak</label><input type="text" id="m-kontak" placeholder="08xx"></div>
+      </div>
+
+      <div class="section-lbl" style="margin-top:4px">Informasi Bank</div>
+      <div class="f3">
+        <div class="field"><label>Bank</label><input type="text" id="m-bank" placeholder="cth. BCA"></div>
+        <div class="field"><label>No. Rekening</label><input type="text" id="m-norek" placeholder="1234567890"></div>
+        <div class="field"><label>Tujuan Bank</label><input type="text" id="m-tujuan" placeholder="cth. KCU Solo"></div>
+      </div>
+
+      <div class="section-lbl" style="margin-top:4px">Ongkir Default (Rp)</div>
+      <div class="field" style="max-width:200px">
+        <div style="position:relative">
+          <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-3);font-family:var(--mono);pointer-events:none">Rp</span>
+          <input type="number" id="m-ongkir" placeholder="0" min="0" style="padding-left:28px;font-family:var(--mono)">
+        </div>
+      </div>
+
+      <div class="section-lbl" style="margin-top:4px">Daftar Harga</div>
+      <div style="display:grid;grid-template-columns:1fr 80px 110px 26px;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:4px;">
+        <span style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em">Produk</span>
+        <span style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em">Satuan</span>
+        <span style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;text-align:right">Selisih (±Rp)</span>
+        <span></span>
+      </div>
+      <div id="hk-list"></div>
+      <button class="add-hk" onclick="addHkRow()">＋ &nbsp;Tambah Produk</button>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" onclick="savePelanggan()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GAS_URL = MK_CONFIG.GAS;
+const UNITS   = ['BALL','SAK','IKAT','KG','LTR','COLY','LEMBAR','PCS'];
+
+let pelangganList = [], produkList = [], selectedId = null, editId = null, activeTab = 'tagihan';
+
+window.addEventListener('DOMContentLoaded', () => {
+  // ── Auth ──
+  MK_AUTH.ensureDemo();
+  const SESS = MK_AUTH.require('login.html', ['packaging','admin']);
+  if(!SESS) return;
+  MK_AUTH.initPage('pelanggan.html');
+
+  const now = new Date();
+  document.getElementById('d-sidebar-date').innerHTML =
+    now.toLocaleDateString('id-ID',{weekday:'long'})+'<br>'+
+    now.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+  loadAll();
+});
+
+function go(p){ window.location.href = p; }
+
+function isMobile(){ return window.innerWidth < 640; }
+
+function onMobileSearch(q){
+  document.getElementById('search').value = q;
+  renderList();
+}
+
+async function loadAll() {
+  MK_LOADER.show('Memuat pelanggan...');
+  try {
+    const [dP, dPr, dT, dK] = await Promise.all([
+      MK_CACHE.fetch('getPelanggan', GAS_URL),
+      MK_CACHE.fetch('getProduk',    GAS_URL),
+      MK_CACHE.fetch('getTagihan',   GAS_URL),
+      MK_CACHE.fetch('getKredit',    GAS_URL),
+    ]);
+    pelangganList = dP.success  ? dP.pelanggan : [];
+    produkList    = dPr.success ? dPr.produk   : [];
+
+    const tagihanAll = dT.success ? dT.tagihan : [];
+    const kreditAll  = dK.success ? dK.kredit  : [];
+
+    // Join tagihan dan kredit ke setiap pelanggan
+    pelangganList.forEach(p => {
+      p.tagihanList = tagihanAll.filter(t =>
+        t.client === p.nama ||
+        (p.group && t.group === p.group && p.group !== ''));
+      p.kreditList  = kreditAll.filter(k =>
+        k.client === p.nama ||
+        (p.group && k.group === p.group && p.group !== ''));
+    });
+  } catch(e) {
+    pelangganList = [];
+    produkList    = [];
+  } finally {
+    MK_LOADER.hide();
+  }
+  renderList();
+}
+
+// ── List with grouping ──
+const openGroups = new Set(['__ungrouped__']); // track expanded groups
+
+function renderList() {
+  const q    = document.getElementById('search').value.toLowerCase().trim();
+  const list = document.getElementById('plg-list');
+  // Show all - aktif and non-aktif, but filter non-aktif to bottom
+  const show = pelangganList.filter(p =>
+    !q || p.nama.toLowerCase().includes(q) ||
+    (p.alias||'').toLowerCase().includes(q) ||
+    (p.kota||'').toLowerCase().includes(q) ||
+    (p.group||'').toLowerCase().includes(q));
+
+  const aktifCount = pelangganList.filter(p=>p.aktif!==false).length;
+  document.getElementById('count-lbl').textContent = `${aktifCount} pelanggan aktif`;
+
+  if (!show.length) {
+    list.innerHTML = `<div style="padding:28px;text-align:center;color:var(--text-3);font-size:13px">${q?'Tidak ditemukan.':'Belum ada pelanggan.'}</div>`;
+    return;
+  }
+
+  // Build groups — non-aktif ke grup terpisah
+  const groups = {};
+  show.filter(p=>p.aktif!==false).forEach(p => {
+    const key = p.group && p.group.trim() ? p.group.trim() : '__ungrouped__';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(p);
+  });
+  // Non-aktif group
+  const nonAktif = show.filter(p=>p.aktif===false);
+  if(nonAktif.length) groups['__nonaktif__'] = nonAktif;
+
+  // Sort: named groups first, then ungrouped, then non-aktif last
+  const keys = Object.keys(groups).sort((a,b) => {
+    if (a==='__nonaktif__') return 1;
+    if (b==='__nonaktif__') return -1;
+    if (a==='__ungrouped__') return 1;
+    if (b==='__ungrouped__') return -1;
+    return a.localeCompare(b);
+  });
+
+  // If searching, open all groups
+  if (q) keys.forEach(k=>openGroups.add(k));
+
+  list.innerHTML = keys.map(key => {
+    const members = groups[key];
+    const isOpen  = openGroups.has(key);
+    const label   = key==='__ungrouped__' ? 'Tanpa Grup' : key==='__nonaktif__' ? 'Non-Aktif' : key;
+    // Count pending tagihan for group badge
+    const totPending = members.reduce((s,p)=>s+(p.tagihanList||[]).filter(t=>t.status==='PENDING').length,0);
+    const totPendingAmt = members.reduce((s,p)=>s+(p.tagihanList||[]).filter(t=>t.status==='PENDING').reduce((ss,t)=>ss+(t.sisa||0),0),0);
+    const totKredit=members.reduce((s,p)=>s+(p.kredit||0),0);
+
+    const groupBadge = totKredit > 0
+      ? `<span class="plg-badge kredit" style="font-size:9px">+${rpShort(totKredit)}</span>`
+      : totPending > 0
+        ? `<span class="plg-badge" style="font-size:9px">${totPending} pending</span>`
+        : '';
+
+    const membersHtml = members.map(p => {
+      const initials = p.nama.slice(0,2).toUpperCase();
+      const pendingTagihan = (p.tagihanList||[]).filter(t=>t.status==='PENDING');
+      const pendingAmt = pendingTagihan.reduce((s,t)=>s+(t.sisa||0),0);
+      const badge = p.aktif===false
+        ? `<span class="plg-badge" style="background:#FEF2F2;color:#B91C1C;font-size:9px">Non-aktif</span>`
+        : p.kredit > 0
+          ? `<span class="plg-badge kredit">${rpShort(p.kredit)}</span>`
+          : pendingTagihan.length > 0
+            ? `<span class="plg-badge">${pendingTagihan.length} pending</span>`
+            : '';
+      return `
+        <div class="plg-item ${p.id===selectedId?'active':''} ${p.aktif===false?'opacity:0.6':''}${p.aktif===false?' style="opacity:0.6"':''}" onclick="selectPelanggan('${p.id}')">
+          <div class="plg-avatar" style="${p.aktif===false?'background:#F0EDE8;color:var(--text-3)':''}">${initials}</div>
+          <div>
+            <div class="plg-name">${p.nama}</div>
+            <div class="plg-city">${p.kota||'—'}</div>
+          </div>
+          ${badge}
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="group-block">
+        <div class="group-header" onclick="toggleGroup('${key.replace(/'/g,"\\'")}')">
+          <span class="group-arrow ${isOpen?'open':''}">▶</span>
+          <span class="group-name">${label}</span>
+          <span class="group-count">${members.length}</span>
+          ${groupBadge}
+        </div>
+        <div class="group-members ${isOpen?'open':''}">${membersHtml}</div>
+      </div>`;
+  }).join('');
+}
+
+function toggleGroup(key) {
+  openGroups.has(key) ? openGroups.delete(key) : openGroups.add(key);
+  renderList();
+}
+
+// ── Select ──
+function selectPelanggan(id) {
+  selectedId = id;
+  renderList();
+  if(isMobile()) {
+    const p = pelangganList.find(x=>x.id===id);
+    if(!p) return;
+    document.getElementById('sheet-title').textContent = p.nama;
+    // Render detail HTML into sheet body
+    const tempDiv = document.createElement('div');
+    document.getElementById('detail-panel').innerHTML = '';
+    renderDetail(); // renders into detail-panel
+    document.getElementById('sheet-body').innerHTML = document.getElementById('detail-panel').innerHTML;
+    document.getElementById('mobile-sheet').classList.add('open');
+  } else {
+    renderDetail();
+  }
+}
+
+function closeMobileSheet(){
+  document.getElementById('mobile-sheet').classList.remove('open');
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===tab));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.toggle('active', t.id==='tc-'+tab));
+}
+
+function renderDetail() {
+  const p = pelangganList.find(x=>x.id===selectedId);
+  const panel = document.getElementById('detail-panel');
+  if (!p) { panel.innerHTML = '<div class="card"><div class="detail-empty"><div class="icon">👆</div><p style="font-size:13px">Pilih pelanggan untuk melihat detail</p></div></div>'; return; }
+
+  const priceList = p.priceList || p.hargaKhusus || [];
+  const hkRows = priceList.map(h => {
+    const prod      = produkList.find(x=>x.nama===h.produk);
+    const sat       = prod ? prod.satuanList.find(s=>s.satuan===h.satuan) : null;
+    const std       = sat ? sat.harga : null;
+    const delta     = h.delta ?? 0;
+    const final     = std != null ? std + delta : (h.harga||null);
+    const sign      = delta > 0 ? '+' : '';
+    const deltaCol  = delta > 0 ? 'var(--green)' : delta < 0 ? 'var(--accent)' : 'var(--text-3)';
+    return `<tr>
+      <td><span style="font-weight:500">${h.produk}</span></td>
+      <td><span style="font-family:var(--mono);font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;">${h.satuan}</span></td>
+      <td style="text-align:right"><span style="font-family:var(--mono);color:var(--text-3)">${std!=null?rp(std):'—'}</span></td>
+      <td style="text-align:right"><span style="font-family:var(--mono);font-weight:500;color:${deltaCol}">${delta!==0?sign+delta.toLocaleString('id-ID'):'—'}</span></td>
+      <td style="text-align:right"><span style="font-family:var(--mono);font-weight:600;color:var(--accent)">${final!=null?rp(final):'—'}</span></td>
+    </tr>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="card">
+      <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--accent-bg);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--accent);font-family:var(--mono);">${p.nama.slice(0,2).toUpperCase()}</div>
+          <div>
+            <div style="font-size:15px;font-weight:600;">${p.nama}</div>
+            <div style="font-size:12px;color:var(--text-3);">${p.alias||''} ${p.kota?'· '+p.kota:''}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="openModal('${p.id}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="delPelanggan('${p.id}')">Hapus</button>
+        </div>
+      </div>
+
+      <!-- Stats strip -->
+      <div class="stats-strip">
+        <div class="stat-item">
+          <div class="stat-lbl">Nota Belum Tagih</div>
+          <div class="stat-val ${p.belumTagih>5?'warn':''}">${p.belumTagih||0} nota</div>
+          <div class="stat-sub">${p.totalBelum?rp(p.totalBelum):'—'}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-lbl">Tagihan Pending</div>
+          ${(()=>{
+            const pending=(p.tagihanList||[]).filter(t=>t.status==='PENDING');
+            const tot=pending.reduce((s,t)=>s+(t.sisa||0),0);
+            return `<div class="stat-val ${pending.length>0?'warn':''}">${pending.length} tagihan</div>
+            <div class="stat-sub">${tot>0?rp(tot):'—'}</div>`;
+          })()}
+        </div>
+        <div class="stat-item">
+          <div class="stat-lbl">Kredit</div>
+          <div class="stat-val ${p.kredit>0?'good':''}">${p.kredit>0?rp(p.kredit):'—'}</div>
+          <div class="stat-sub">${p.kredit>0?'kelebihan bayar':''}</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab ${activeTab==='tagihan'?'active':''}" data-tab="tagihan" onclick="switchTab('tagihan')">Tagihan (${(p.tagihanList||[]).length})</div>
+        <div class="tab ${activeTab==='harga'?'active':''}" data-tab="harga" onclick="switchTab('harga')">Daftar Harga (${(p.priceList||p.hargaKhusus||[]).length})</div>
+        <div class="tab ${activeTab==='kredit'?'active':''}" data-tab="kredit" onclick="switchTab('kredit')">Kredit</div>
+        <div class="tab ${activeTab==='info'?'active':''}" data-tab="info" onclick="switchTab('info')">Info & Bank</div>
+      </div>
+
+      <div id="tc-tagihan" class="tab-content ${activeTab==='tagihan'?'active':''}">
+        ${(()=>{
+          const allT = p.tagihanList||[];
+          if(!allT.length) return '<p style="font-size:13px;color:var(--text-3);font-style:italic;padding:8px 0">Belum ada tagihan.</p>';
+          const cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate()-30);
+          const statusOrder={PENDING:0,KREDIT:1,LUNAS:2};
+          const sorted=[...allT]
+            .filter(t => t.status!=='LUNAS' || new Date(t.tanggal)>=cutoff30)
+            .sort((a,b)=>{
+              const so=(statusOrder[a.status]??3)-(statusOrder[b.status]??3);
+              if(so!==0)return so;
+              return new Date(b.tanggal)-new Date(a.tanggal);
+            });
+          window._plgTagihanStore = {all: allT, sorted, plgId: p.id};
+          return `
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+            <input type="text" id="tg-search-${p.id}" placeholder="Cari no. tagihan / nota..." style="flex:1;min-width:160px;font-size:12px;padding:6px 10px;"
+              oninput="filterTagihanTab('${p.id}')">
+            <input type="date" id="tg-dari-${p.id}" style="font-size:12px;padding:6px 8px;max-width:130px;" onchange="filterTagihanTab('${p.id}')">
+            <span style="font-size:11px;color:var(--text-3)">—</span>
+            <input type="date" id="tg-sampai-${p.id}" style="font-size:12px;padding:6px 8px;max-width:130px;" onchange="filterTagihanTab('${p.id}')">
+            <div style="position:relative;">
+              <select id="tg-status-${p.id}" style="font-size:12px;padding:6px 24px 6px 8px;-webkit-appearance:none;appearance:none;" onchange="filterTagihanTab('${p.id}')">
+                <option value="">Semua Status</option>
+                <option value="PENDING">PENDING</option>
+                <option value="KREDIT">KREDIT</option>
+                <option value="LUNAS">LUNAS</option>
+              </select>
+              <span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text-3);pointer-events:none;">▾</span>
+            </div>
+          </div>
+          <div id="tg-table-${p.id}">
+            ${renderTagihanRows(sorted)}
+          </div>`;
+        })()}
+      </div>
+
+      <div id="tc-harga" class="tab-content ${activeTab==='harga'?'active':''}">
+        ${priceList.length ? `
+          <table class="hk-table">
+            <thead><tr><th>Produk</th><th>Satuan</th><th style="text-align:right">Standar</th><th style="text-align:right">Selisih</th><th style="text-align:right">Harga</th></tr></thead>
+            <tbody>${hkRows}</tbody>
+          </table>` :
+          '<p style="font-size:13px;color:var(--text-3);font-style:italic;padding:8px 0">Belum ada daftar harga untuk pelanggan ini.</p>'
+        }
+      </div>
+
+      <div id="tc-kredit" class="tab-content ${activeTab==='kredit'?'active':''}">
+        ${(p.kreditList||[]).length ? `
+          <table class="hk-table">
+            <thead><tr><th>Dari Tagihan</th><th>Tanggal</th><th style="text-align:right">Jumlah Kredit</th></tr></thead>
+            <tbody>
+              ${p.kreditList.map(k=>`<tr>
+                <td style="font-family:var(--mono);font-weight:500">${k.fromTagihan}</td>
+                <td style="font-size:12px;color:var(--text-3)">${fmtD(k.tanggal)}</td>
+                <td style="text-align:right;font-family:var(--mono);font-weight:600;color:var(--green)">${rp(k.jumlah)}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>` :
+          '<p style="font-size:13px;color:var(--text-3);font-style:italic;padding:8px 0">Tidak ada kredit untuk pelanggan ini.</p>'
+        }
+      </div>
+
+      <div id="tc-info" class="tab-content ${activeTab==='info'?'active':''}">
+        <div class="info-grid">
+          <div class="info-item"><span class="info-lbl">Kota</span><span class="info-val ${!p.kota?'muted':''}">${p.kota||'Belum diisi'}</span></div>
+          <div class="info-item"><span class="info-lbl">Grouping</span><span class="info-val ${!p.group?'muted':''}">${p.group||'—'}</span></div>
+          <div class="info-item"><span class="info-lbl">No. Kontak</span><span class="info-val ${!p.kontak?'muted':''}">${p.kontak||'Belum diisi'}</span></div>
+          <div class="info-item"><span class="info-lbl">Ongkir Default</span><span class="info-val ${!p.ongkir?'muted':''}">${p.ongkir?rp(p.ongkir):'Tidak ada'}</span></div>
+          <div class="info-item"><span class="info-lbl">Bank</span><span class="info-val ${!p.bank?'muted':''}">${p.bank||'—'}</span></div>
+          <div class="info-item"><span class="info-lbl">No. Rekening</span><span class="info-val ${!p.norek?'muted':''}">${p.norek||'—'}</span></div>
+          ${p.tujuan?`<div class="info-item" style="grid-column:1/-1"><span class="info-lbl">Tujuan Bank</span><span class="info-val">${p.tujuan}</span></div>`:''}
+        </div>
+      </div>
+
+    </div>`;
+}
+
+// ── Modal ──
+function openModal(id=null) {
+  editId = id;
+  document.getElementById('modal-title').textContent = id ? 'Edit Pelanggan' : 'Tambah Pelanggan';
+  document.getElementById('hk-list').innerHTML = '';
+  const fields = ['nama','alias','kota','group','kontak','bank','norek','tujuan','ongkir'];
+  if (id) {
+    const p = pelangganList.find(x=>x.id===id);
+    if (!p) return;
+    fields.forEach(f => document.getElementById('m-'+f).value = p[f]||'');
+    (p.priceList||p.hargaKhusus||[]).forEach(h => addHkRow(h.produk, h.satuan, h.delta??0));
+  } else {
+    fields.forEach(f => document.getElementById('m-'+f).value = '');
+  }
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.getElementById('m-nama').focus(),80);
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  editId = null;
+}
+
+function addHkRow(produk='', satuan='BALL', delta='') {
+  const wrap = document.getElementById('hk-list');
+  const rid  = `hk${Date.now()}${Math.random().toString(36).slice(2,5)}`;
+  const div  = document.createElement('div');
+  div.className = 'hk-form-row';
+  div.id = rid;
+  div.draggable = true;
+
+  const matchProd  = produk ? produkList.find(x=>x.nama===produk.trim().toUpperCase()||x.nama===produk.trim()) : null;
+  const satuanOpts = buildSatuanOpts(matchProd, satuan);
+
+  div.innerHTML = `
+    <div class="hk-drag-handle" title="Seret untuk urut ulang">⠿</div>
+    <div style="position:relative">
+      <input type="text" id="${rid}p" value="${produk}" placeholder="Ketik nama produk..."
+        autocomplete="off" list="dl-${rid}"
+        oninput="onHkProdukChange('${rid}')"
+        onchange="onHkProdukChange('${rid}')">
+      <datalist id="dl-${rid}">${produkList.map(p=>`<option value="${p.nama}">`).join('')}</datalist>
+    </div>
+    <div class="sel" style="position:relative">
+      <select id="${rid}u" onchange="onHkSatuanChange('${rid}')">
+        ${satuanOpts}
+      </select>
+      <span style="position:absolute;right:7px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;font-size:10px">▾</span>
+    </div>
+    <div class="rp-w">
+      <span>±</span>
+      <input type="number" id="${rid}d" value="${delta||''}" placeholder="0"
+        oninput="updateHkPreview('${rid}')"
+        style="font-family:var(--mono);text-align:right">
+    </div>
+    <button class="rm" onclick="document.getElementById('${rid}').remove()">×</button>
+    <div class="hk-preview" id="${rid}prev"></div>`;
+
+  // ── Drag events ──
+  div.addEventListener('dragstart', e => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', rid);
+    setTimeout(() => div.classList.add('dragging'), 0);
+  });
+  div.addEventListener('dragend', () => {
+    div.classList.remove('dragging');
+    document.querySelectorAll('.hk-form-row').forEach(r => r.classList.remove('drag-over'));
+  });
+  div.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.hk-form-row').forEach(r => r.classList.remove('drag-over'));
+    div.classList.add('drag-over');
+  });
+  div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+  div.addEventListener('drop', e => {
+    e.preventDefault();
+    div.classList.remove('drag-over');
+    const draggedId = e.dataTransfer.getData('text/plain');
+    const dragged   = document.getElementById(draggedId);
+    if (!dragged || dragged === div) return;
+    // Insert dragged before target
+    wrap.insertBefore(dragged, div);
+  });
+
+  wrap.appendChild(div);
+  if (produk) updateHkPreview(rid);
+}
+
+function onHkProdukChange(rid) {
+  const val  = document.getElementById(rid+'p').value.trim();
+  const prod = produkList.find(x => x.nama===val || x.nama===val.toUpperCase());
+  if (prod && prod.satuanList && prod.satuanList.length) {
+    const sel = document.getElementById(rid+'u');
+    const prev = sel.value;
+    sel.innerHTML = buildSatuanOpts(prod, prev);
+    if (!prod.satuanList.find(s=>s.satuan===sel.value)) sel.value = prod.satuanList[0].satuan;
+  }
+  updateHkPreview(rid);
+}
+
+function onHkSatuanChange(rid) {
+  updateHkPreview(rid);
+}
+
+function updateHkPreview(rid) {
+  const prodNama = document.getElementById(rid+'p').value.trim();
+  const satuan   = document.getElementById(rid+'u').value;
+  const deltaVal = document.getElementById(rid+'d').value;
+  const delta    = deltaVal==='' ? 0 : +deltaVal;
+  const prev     = document.getElementById(rid+'prev');
+  if (!prev) return;
+
+  const prod = produkList.find(x => x.nama===prodNama || x.nama===prodNama.toUpperCase());
+  const sat  = prod ? prod.satuanList.find(s=>s.satuan===satuan) : null;
+  const std  = sat ? sat.harga : null;
+
+  if (!prodNama) { prev.innerHTML=''; return; }
+
+  if (std) {
+    const final = std + delta;
+    const sign  = delta > 0 ? '+' : '';
+    const col   = delta > 0 ? 'var(--green)' : delta < 0 ? 'var(--accent)' : 'var(--text-3)';
+    prev.innerHTML = delta !== 0
+      ? `Standar: <span style="text-decoration:line-through;color:var(--text-3)">Rp ${std.toLocaleString('id-ID')}</span>
+         <span style="color:${col}"> ${sign}${delta.toLocaleString('id-ID')}</span>
+         → <strong style="color:var(--accent)">Rp ${final.toLocaleString('id-ID')}</strong>`
+      : `Harga standar: <strong>Rp ${std.toLocaleString('id-ID')}</strong>`;
+  } else if (prod) {
+    prev.innerHTML = '<span style="color:var(--text-3)">Produk ditemukan — pilih satuan</span>';
+  } else {
+    prev.innerHTML = '<span style="color:var(--text-3)">Ketik dan pilih produk dari daftar</span>';
+  }
+}
+
+function getHkRows() {
+  return Array.from(document.querySelectorAll('#hk-list .hk-form-row')).map(row => {
+    const id    = row.id;
+    const produk = document.getElementById(id+'p').value.trim().toUpperCase();
+    const satuan = document.getElementById(id+'u').value;
+    const dVal   = document.getElementById(id+'d').value;
+    const delta  = dVal==='' ? 0 : +dVal;
+    // Compute harga final = standar + delta
+    const prod   = produkList.find(x=>x.nama===produk);
+    const sat    = prod ? prod.satuanList.find(s=>s.satuan===satuan) : null;
+    const harga  = sat ? sat.harga + delta : delta;
+    return { produk, satuan, delta, harga };
+  }).filter(r => r.produk); // keep ALL rows with produk (even delta=0)
+}
+
+function buildSatuanOpts(prod, selectedSatuan) {
+  const satuans = prod && prod.satuanList && prod.satuanList.length
+    ? prod.satuanList.map(s=>s.satuan)
+    : UNITS;
+  if (selectedSatuan && !satuans.includes(selectedSatuan)) satuans.unshift(selectedSatuan);
+  return satuans.map(u=>`<option ${u===selectedSatuan?'selected':''}>${u}</option>`).join('');
+}
+
+// ── Save ──
+function renderTagihanRows(list) {
+  if(!list.length) return '<p style="font-size:13px;color:var(--text-3);font-style:italic;padding:8px 0">Tidak ada tagihan ditemukan.</p>';
+  return `<table class="hk-table">
+    <thead><tr>
+      <th>No. Tagihan</th><th>Tgl Tagih</th><th>Periode</th>
+      <th style="text-align:right">Tagihan</th><th style="text-align:right">Sisa</th>
+    </tr></thead>
+    <tbody>
+      ${list.map((t,i)=>{
+        const sc=t.status==='LUNAS'?'sb-lunas':t.status==='KREDIT'?'sb-kredit':'sb-pending';
+        const sisaColor=t.sisa<0?'var(--blue)':t.sisa>0?'var(--accent)':'var(--text-3)';
+        return `<tr style="cursor:pointer;" onclick="openTagihanDetail(${i})">
+          <td style="font-family:var(--mono);font-weight:500;font-size:12px;">${t.noTagihan}
+            <span class="sbadge ${sc}" style="margin-left:4px;font-size:10px;">${t.status}</span></td>
+          <td style="font-size:12px;color:var(--text-3)">${fmtD(t.tanggal)}</td>
+          <td style="font-size:11px;color:var(--text-3);font-family:var(--mono)">${t.periode||'—'}</td>
+          <td style="text-align:right;font-family:var(--mono);font-weight:500;font-size:12px">${rp(t.totalTagihan)}</td>
+          <td style="text-align:right;font-family:var(--mono);font-weight:600;color:${sisaColor};font-size:12px">${t.sisa===0?'✓ Lunas':rp(Math.abs(t.sisa))}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
+
+function filterTagihanTab(plgId) {
+  const store = window._plgTagihanStore;
+  if(!store || store.plgId!==plgId) return;
+  const q      = (document.getElementById('tg-search-'+plgId)?.value||'').toLowerCase().trim();
+  const dari   = document.getElementById('tg-dari-'+plgId)?.value||'';
+  const sampai = document.getElementById('tg-sampai-'+plgId)?.value||'';
+  const status = document.getElementById('tg-status-'+plgId)?.value||'';
+
+  const cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate()-30);
+  const statusOrder={PENDING:0,KREDIT:1,LUNAS:2};
+
+  let filtered = (store.all||[]).filter(t => {
+    // Lunas older than 30 days hidden unless explicitly filtered
+    if(!status && t.status==='LUNAS' && new Date(t.tanggal)<cutoff30) return false;
+    if(status && t.status!==status) return false;
+    if(dari   && t.tanggal < dari)   return false;
+    if(sampai && t.tanggal > sampai) return false;
+    if(q) {
+      const m = (t.noTagihan||'').toLowerCase().includes(q);
+      const mn = (t.notaList||[]).some(n=>String(n).includes(q));
+      if(!m && !mn) return false;
+    }
+    return true;
+  }).sort((a,b)=>{
+    const so=(statusOrder[a.status]??3)-(statusOrder[b.status]??3);
+    if(so!==0)return so;
+    return new Date(b.tanggal)-new Date(a.tanggal);
+  });
+
+  store.sorted = filtered;
+  const el = document.getElementById('tg-table-'+plgId);
+  if(el) el.innerHTML = renderTagihanRows(filtered);
+}
+
+async function savePelanggan() {
+  const nama = document.getElementById('m-nama').value.trim().toUpperCase();
+  if (!nama) { showToast('⚠ Nama wajib diisi!', false); return; }
+
+  const id = editId || Date.now().toString();
+  const obj = {
+    id, nama,
+    alias:       document.getElementById('m-alias').value.trim(),
+    kota:        document.getElementById('m-kota').value.trim(),
+    group:       document.getElementById('m-group').value.trim(),
+    kontak:      document.getElementById('m-kontak').value.trim(),
+    bank:        document.getElementById('m-bank').value.trim(),
+    norek:       document.getElementById('m-norek').value.trim(),
+    tujuan:      document.getElementById('m-tujuan').value.trim(),
+    ongkir:      +document.getElementById('m-ongkir').value || null,
+    priceList:   getHkRows(),
+    belumTagih:  editId ? (pelangganList.find(x=>x.id===editId)||{}).belumTagih||0 : 0,
+    totalBelum:  editId ? (pelangganList.find(x=>x.id===editId)||{}).totalBelum||0 : 0,
+    kredit:      editId ? (pelangganList.find(x=>x.id===editId)||{}).kredit||0 : 0,
+  };
+
+  // Tentukan action SEBELUM closeModal() — closeModal() null-kan editId
+  const _action  = editId ? 'updatePelanggan' : 'savePelanggan';
+  const _payload = { action: _action, ...obj };
+
+  // Update lokal dulu
+  if (editId) {
+    const idx = pelangganList.findIndex(x=>x.id===editId);
+    if (idx>=0) pelangganList[idx] = obj;
+  } else {
+    pelangganList.push(obj);
+  }
+  if (selectedId===editId||!editId) selectedId = id;
+  renderList();
+  renderDetail();
+  closeModal();
+  showToast(`✓ "${nama}" disimpan!`, true);
+
+  // Bust cache lalu sync ke GAS
+  MK_CACHE.bust('getPelanggan');
+  try {
+    const r = await fetch(GAS_URL,{method:'POST',body:JSON.stringify(_payload)});
+    const d = await r.json();
+    if(d.success) {
+      // Update local id to match sheet id (P-xxx) so future edits find the right row
+      if(!editId && d.id) {
+        const idx = pelangganList.findIndex(x=>x.id===id);
+        if(idx>=0){ pelangganList[idx].id = d.id; }
+        if(selectedId===id) selectedId = d.id;
+      }
+    } else {
+      showToast('⚠ Gagal simpan: '+(d.error||'unknown'), false);
+      console.warn('savePelanggan error:', d.error);
+    }
+  } catch(e) { console.warn('GAS sync gagal'); }
+}
+
+async function delPelanggan(id) {
+  const p = pelangganList.find(x=>x.id===id);
+  if (!p || !confirm(`Non-aktifkan pelanggan "${p.nama}"?`)) return;
+  // Soft delete — mark non-aktif locally, don't remove from list
+  const idx = pelangganList.findIndex(x=>x.id===id);
+  if(idx>=0) pelangganList[idx].aktif = false;
+  if (selectedId===id) { selectedId=null; document.getElementById('detail-panel').innerHTML='<div class="card"><div class="detail-empty"><div class="icon">👆</div><p style="font-size:13px">Pilih pelanggan untuk melihat detail</p></div></div>'; }
+  renderList();
+  showToast(`"${p.nama}" dinonaktifkan.`, true);
+  MK_CACHE.bust('getPelanggan');
+  try {
+    const r = await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'deletePelanggan',id})});
+    const d = await r.json();
+    if(!d.success) console.warn('deletePelanggan error:', d.error, id);
+  } catch(e) { console.warn('GAS error:', e); }
+}
+
+function rp(n){ return n?'Rp '+(+n).toLocaleString('id-ID'):'—'; }
+function rpShort(n){ if(!n)return'—'; return n>=1000000?`${(n/1000000).toFixed(1)}jt`:`${(n/1000).toFixed(0)}rb`; }
+function fmtD(d){ return d?new Date(d).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'2-digit'}):'—'; }
+
+function showToast(msg,ok){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast '+(ok?'ok':'err');
+  el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+function openTagihanDetail(idx) {
+  const store = window._plgTagihanStore || {};
+  const t = (store.sorted||[])[idx];
+  if(!t) return;
+
+  const sc = t.status==='LUNAS'?'s-lunas':t.status==='KREDIT'?'s-kredit':'s-pending';
+  const notaCount = (t.notaList||[]).length || t.notas || 0;
+
+  // Header
+  document.getElementById('td-notag').innerHTML =
+    `${t.noTagihan} <span class="sbadge ${sc}" style="font-size:11px;margin-left:6px;vertical-align:middle;">${t.status}</span>`;
+  document.getElementById('td-sub').textContent = t.noTagihan;
+
+  // Summary rows
+  document.getElementById('td-tanggal-val').textContent = fmtD(t.tanggal);
+  document.getElementById('td-nota-count').textContent = notaCount + ' nota';
+  document.getElementById('td-periode-short').textContent = t.periode||'—';
+  document.getElementById('td-total').textContent = rp(t.totalTagihan);
+  document.getElementById('td-bayar').textContent = t.totalBayar>0 ? rp(t.totalBayar) : '—';
+
+  const sisaLbl = t.sisa<0?'Kelebihan':t.sisa===0?'Lunas':'Sisa';
+  document.getElementById('td-sisa-lbl').textContent = sisaLbl;
+  const sisaEl = document.getElementById('td-sisa');
+  sisaEl.textContent = t.sisa===0 ? 'Lunas' : rp(Math.abs(t.sisa));
+  sisaEl.style.color = t.sisa<0?'var(--blue)':t.sisa>0?'var(--accent)':'var(--text-3)';
+
+  // Total bar
+  document.getElementById('td-total-lbl').textContent =
+    t.sisa===0 ? 'LUNAS' : t.sisa<0 ? 'KELEBIHAN BAYAR' : 'SISA TAGIHAN';
+  document.getElementById('td-total-val').textContent =
+    t.sisa===0 ? 'Lunas ✓' : rp(Math.abs(t.sisa));
+
+  // Nota list — show as chip grid
+  const notaEl = document.getElementById('td-nota-list');
+  if((t.notaList||[]).length) {
+    notaEl.innerHTML = `
+      <div style="padding:10px 12px;display:flex;flex-wrap:wrap;gap:6px;">
+        ${t.notaList.map(n=>`
+          <span style="font-family:var(--mono);font-size:12px;font-weight:500;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text-2);">
+            ${n}
+          </span>`).join('')}
+      </div>
+      <div style="padding:4px 12px 10px;font-size:11px;color:var(--text-3);font-family:var(--mono);">
+        ${notaCount} nota · ${t.periode||''}
+      </div>`;
+  } else if(notaCount > 0) {
+    notaEl.innerHTML = `<div style="padding:12px;font-size:13px;color:var(--text-2);font-family:var(--mono);">${notaCount} nota (nomor tidak tersedia)</div>`;
+  } else {
+    notaEl.innerHTML = `<div style="padding:12px;font-size:13px;color:var(--text-3);font-style:italic;">Tidak ada data nota</div>`;
+  }
+
+  // Pembayaran list
+  const bayarEl = document.getElementById('td-bayar-list');
+  if((t.bayarRows||[]).length) {
+    const totalBayar = t.bayarRows.reduce((s,b)=>s+b.jumlah,0);
+    bayarEl.innerHTML = t.bayarRows.map((b,i)=>`
+      <div style="display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--green-bg);border:1px solid var(--green-border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--green);font-family:var(--mono);">${i+1}</div>
+        <div>
+          <div style="font-size:13px;font-weight:500;">${b.cara}</div>
+          <div style="font-size:11px;color:var(--text-3);font-family:var(--mono);">${b.ket||''}${b.tgl?' · '+fmtD(b.tgl):''}</div>
+        </div>
+        <div style="font-family:var(--mono);font-weight:600;color:var(--green);font-size:13px;text-align:right;">${rp(b.jumlah)}</div>
+      </div>`).join('') +
+      (t.bayarRows.length > 1 ? `
+        <div style="display:flex;justify-content:space-between;padding:8px 14px;background:var(--surface2);">
+          <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);">TOTAL ${t.bayarRows.length} PEMBAYARAN</span>
+          <span style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--green);">${rp(totalBayar)}</span>
+        </div>` : '');
+  } else {
+    bayarEl.innerHTML = `<div style="padding:14px;font-size:13px;color:var(--text-3);font-style:italic;">Belum ada pembayaran tercatat</div>`;
+  }
+
+  // Catatan
+  const catWrap = document.getElementById('td-catatan-wrap');
+  if(t.catatan) {
+    catWrap.style.display = 'block';
+    document.getElementById('td-catatan').textContent = t.catatan;
+  } else {
+    catWrap.style.display = 'none';
+  }
+
+  // Barang diambil
+  const itemsWrap = document.getElementById('td-items-wrap');
+  const itemsEl   = document.getElementById('td-items-list');
+  const items = t.items || [];
+  if(items.length) {
+    itemsWrap.style.display = 'block';
+    // Column header
+    itemsEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 60px 80px;padding:6px 12px;background:var(--surface2);border-bottom:1px solid var(--border);">
+        <span style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;">Produk</span>
+        <span style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;text-align:right;">Qty</span>
+        <span style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;text-align:right;">Nilai</span>
+      </div>
+      ${items.map(it=>`
+        <div style="display:grid;grid-template-columns:1fr 60px 80px;padding:8px 12px;border-bottom:1px solid var(--surface2);align-items:center;">
+          <div>
+            <div style="font-size:12px;font-weight:500;color:var(--text);">${it.nama}</div>
+            <div style="font-size:11px;color:var(--text-3);font-family:var(--mono);">${it.satuan||''}</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:12px;font-weight:600;text-align:right;color:var(--text-2);">${it.qty.toLocaleString('id-ID')}</div>
+          <div style="font-family:var(--mono);font-size:12px;font-weight:600;text-align:right;color:var(--text);">${it.total?rp(it.total):'—'}</div>
+        </div>`).join('')}
+      <div style="display:flex;justify-content:space-between;padding:7px 12px;background:var(--surface2);border-top:1px solid var(--border);">
+        <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);">${items.length} item</span>
+        <span style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent);">${rp(items.reduce((s,it)=>s+(it.total||0),0))}</span>
+      </div>`;
+  } else {
+    itemsWrap.style.display = 'none';
+  }
+
+  document.getElementById('modal-tagihan').classList.add('open');
+}
+
+function closeTagihanDetail(){ document.getElementById('modal-tagihan').classList.remove('open'); }
+function goToTagihan(){ window.location.href='tagihan.html'; }
+
+
+const MOCK_PLG = [];
+const MOCK_PROD = [];
+</script>
+<!-- Tagihan Detail Modal -->
+<div class="modal-bd" id="modal-tagihan" onclick="if(event.target===this)closeTagihanDetail()" style="z-index:210;">
+  <div class="modal" style="max-width:860px;">
+    <!-- Header -->
+    <div class="modal-hd">
+      <div>
+        <h3 id="td-notag" style="font-family:var(--mono);font-size:15px;">—</h3>
+        <div style="font-size:12px;color:var(--text-3);margin-top:3px;" id="td-sub">—</div>
+      </div>
+      <button class="modal-x" onclick="closeTagihanDetail()">×</button>
+    </div>
+
+    <!-- 2-col body — explicit height so both columns always render -->
+    <div class="modal-tagihan-body" style="display:grid;grid-template-columns:1fr 300px;height:65vh;">
+
+      <!-- LEFT col: scrollable -->
+      <div class="modal-tagihan-left" style="height:65vh;overflow-y:auto;border-right:1px solid var(--border);padding:16px 18px;">
+
+        <!-- Summary: baris per baris -->
+        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);">
+            <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;">Tanggal Tagih</span>
+            <span style="font-size:13px;font-weight:500;" id="td-tanggal-val">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);">
+            <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;">Periode Nota</span>
+            <span style="font-size:13px;font-weight:500;" id="td-periode-short">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);">
+            <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;">Jumlah Nota</span>
+            <span style="font-size:13px;font-weight:700;font-family:var(--mono);color:var(--blue);" id="td-nota-count">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);">
+            <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;">Total Tagihan</span>
+            <span style="font-size:13px;font-weight:700;font-family:var(--mono);" id="td-total">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);">
+            <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;">Total Dibayar</span>
+            <span style="font-size:13px;font-weight:700;font-family:var(--mono);color:var(--green);" id="td-bayar">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;">
+            <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;" id="td-sisa-lbl">Sisa</span>
+            <span style="font-size:13px;font-weight:700;font-family:var(--mono);" id="td-sisa">—</span>
+          </div>
+        </div>
+
+        <!-- Nota chips -->
+        <div style="margin-bottom:14px;">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);font-family:var(--mono);margin-bottom:8px;">Nota dalam Tagihan</div>
+          <div id="td-nota-list" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;"></div>
+        </div>
+
+        <!-- Barang diambil -->
+        <div id="td-items-wrap" style="margin-bottom:14px;">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);font-family:var(--mono);margin-bottom:8px;">Barang Diambil</div>
+          <div id="td-items-list" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;"></div>
+        </div>
+
+        <!-- Catatan -->
+        <div id="td-catatan-wrap" style="display:none;">
+          <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mono);margin-bottom:6px;">Catatan</div>
+          <div id="td-catatan" style="font-size:13px;color:var(--text-2);background:var(--surface2);padding:10px 12px;border-radius:var(--radius-sm);"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT col: payments scroll + fixed total bar -->
+      <div class="modal-tagihan-right" style="height:65vh;display:flex;flex-direction:column;">
+        <div style="padding:14px 16px 6px;border-bottom:1px solid var(--border);flex-shrink:0;">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);font-family:var(--mono);">Riwayat Pembayaran</div>
+        </div>
+        <div id="td-bayar-list" class="modal-tagihan-right-scroll" style="flex:1;overflow-y:auto;"></div>
+        <div style="flex-shrink:0;padding:12px 14px;border-top:1px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--text);padding:11px 14px;border-radius:var(--radius-sm);">
+            <span style="font-size:10px;font-family:var(--mono);color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.07em;" id="td-total-lbl">SISA TAGIHAN</span>
+            <span style="font-size:15px;font-weight:700;font-family:var(--mono);color:#fff;" id="td-total-val">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-ghost" onclick="closeTagihanDetail()" style="padding:7px 16px;">Tutup</button>
+      <button class="btn btn-primary" onclick="goToTagihan()" style="padding:7px 16px;background:var(--text);">Buka di Tagihan →</button>
+    </div>
+  </div>
+</div>
+
+<script src="mk-responsive.js"></script>
+</body>
+</html>

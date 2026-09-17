@@ -1,0 +1,231 @@
+/* ============================================================
+   mk-responsive.css — Lapisan adaptif BUKU MK
+   ------------------------------------------------------------
+   Pasang di SEMUA halaman, SETELAH <style> halaman itu sendiri:
+     <link rel="stylesheet" href="mk-responsive.css">
+   Pasangannya: mk-responsive.js (mengisi data-label di tiap sel)
+
+   Breakpoint mengikuti auth.js / nav.css yang sudah ada:
+     ≥1024px  desktop  — sidebar penuh 210px
+     640–1023 tablet   — sidebar ikon 60px
+     <640px   HP       — sidebar drawer + tabel jadi kartu
+   ============================================================ */
+
+/* ── Dasar: cegah scroll horizontal ─────────────────────── */
+@media (max-width: 1023px) {
+  html, body { max-width: 100%; overflow-x: hidden; }
+  img, svg, canvas { max-width: 100%; height: auto; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   TABLET  640–1023px
+   ══════════════════════════════════════════════════════════ */
+@media (min-width: 640px) and (max-width: 1023px) {
+
+  /* Grid apa pun dengan >2 kolom tetap dipakai tapi dipadatkan */
+  .grid-3, .grid-4, .stat-grid, .cards-grid,
+  [class*="col-3"], [class*="col-4"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* Form 2 kolom tetap 2 kolom; form 3+ kolom jadi 2 */
+  .form-row, .field-row { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+  /* Tabel lebar: geser horizontal daripada dipaksa mengecil */
+  .table-wrap, .tbl-wrap, .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 640px; }
+
+  /* Modal jangan mepet tepi */
+  .modal-box, .modal-card, .m-box { max-width: 92vw !important; }
+
+  .d-content { padding: 18px 20px 60px; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   HP  <640px
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 639px) {
+
+  /* ── Target sentuh minimal 44px (pedoman aksesibilitas) ── */
+  button, .btn, .nav-item, .tab, .chip, select,
+  input[type=text], input[type=number], input[type=date], input[type=password] {
+    min-height: 44px;
+  }
+  /* 16px mencegah iOS auto-zoom saat fokus input */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* ── Semua grid jadi 1 kolom ── */
+  .grid-2, .grid-3, .grid-4, .stat-grid, .cards-grid,
+  .form-row, .field-row,
+  [class*="col-2"], [class*="col-3"], [class*="col-4"] {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Ringkasan angka tetap 2 kolom — lebih enak dibaca sekilas */
+  .stat-grid, .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+  .d-content { padding: calc(var(--header-h, 52px) + 12px) 12px 84px; }
+  .card, .panel, .box { border-radius: 10px; }
+
+  /* ── TABEL → KARTU ──────────────────────────────────────
+     Aktif hanya untuk tabel bertanda .mk-cards
+     (mk-responsive.js menandai otomatis).                  */
+  table.mk-cards,
+  table.mk-cards thead,
+  table.mk-cards tbody,
+  table.mk-cards tr,
+  table.mk-cards td { display: block; width: 100%; min-width: 0; }
+
+  table.mk-cards thead { display: none; }
+
+  table.mk-cards tr {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #D9D4CC);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 9px;
+  }
+
+  table.mk-cards td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 0;
+    border: none;
+    text-align: right;
+    font-size: 13.5px;
+    white-space: normal;
+  }
+
+  table.mk-cards td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    text-align: left;
+    font-family: var(--mono, monospace);
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-3, #9E9891);
+  }
+
+  /* Sel kosong disembunyikan agar kartu tidak jadi tinggi sia-sia */
+  table.mk-cards td.mk-empty { display: none; }
+
+  /* Kolom pertama dijadikan judul kartu */
+  table.mk-cards td.mk-title {
+    font-weight: 600;
+    font-size: 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--surface2, #F0EDE8);
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+  }
+  table.mk-cards td.mk-title::before { display: none; }
+
+  /* Kolom aksi (tombol) diletakkan penuh di bawah */
+  table.mk-cards td.mk-actions {
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 9px;
+    border-top: 1px solid var(--surface2, #F0EDE8);
+    margin-top: 5px;
+  }
+  table.mk-cards td.mk-actions::before { display: none; }
+
+  /* Tabel yang TIDAK boleh jadi kartu (mis. tabel cetak nota / input item)
+     tetap bisa digeser horizontal */
+  table:not(.mk-cards) { display: table; }
+  .table-wrap, .tbl-wrap, .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* ── Modal jadi bottom-sheet ── */
+  .modal-box, .modal-card, .m-box {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 92vh;
+    border-radius: 14px 14px 0 0 !important;
+    margin: 0 !important;
+    position: fixed !important;
+    left: 0; right: 0; bottom: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .modal, .overlay { align-items: flex-end !important; padding: 0 !important; }
+
+  /* ── Bilah aksi lengket di bawah (Simpan / Batal) ── */
+  .sticky-actions, .form-actions, .modal-foot {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface, #fff);
+    border-top: 1px solid var(--border, #D9D4CC);
+    padding: 10px 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    display: flex;
+    gap: 8px;
+    z-index: 5;
+  }
+  .sticky-actions > *, .form-actions > * { flex: 1; }
+
+  /* ── Autocomplete: lebar penuh, di atas keyboard ── */
+  .ac-list, #ac-list, [id$="-drop"] {
+    max-height: 45vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Sembunyikan hiasan yang tidak esensial di layar kecil */
+  .desktop-only, .hide-mobile { display: none !important; }
+
+  /* ── PERBAIKAN: bilah tab tertutup topbar melayang ──────
+     auth.js membuat .topbar jadi position:fixed di HP, lalu memberi
+     padding-top ke .content/.d-content/.page. Tapi .page-tabs berada
+     DI ATAS .page dan tidak kebagian offset itu, jadi tertimbun
+     di balik header. (Terlihat di tagihan.html.)                    */
+  .main > .page-tabs {
+    margin-top: var(--header-h, 52px);
+    position: sticky;
+    top: var(--header-h, 52px);
+    z-index: 19;
+    background: var(--surface, #fff);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .main > .page-tabs::-webkit-scrollbar { display: none; }
+  .main > .page-tabs .page-tab { white-space: nowrap; flex: 0 0 auto; }
+
+  /* Offset sudah diambil alih .page-tabs — jangan dobel */
+  .page-tabs ~ .page { padding-top: 12px !important; }
+
+  /* Bilah tab lain (langsiran) — geser samping kalau sempit */
+  .tab-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-bar .tab { flex: 0 0 auto; }
+
+  /* Ruang aman untuk banner koneksi mk-net.js */
+  body { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* Utilitas kebalikan */
+@media (min-width: 640px) {
+  .mobile-only, .hide-desktop { display: none !important; }
+}
+
+/* Hormati preferensi kurangi-animasi */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* Cetak: bilah jaringan & sidebar tidak ikut tercetak */
+@media print {
+  #mk-net-bar, #mk-net-pill, #mk-net-toast,
+  .sidebar, #d-sidebar, .topbar, .mk-hamburger { display: none !important; }
+}
