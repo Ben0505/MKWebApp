@@ -318,39 +318,129 @@ function setupStock() {
 }
 
 // ============================================================
-//  WEB APP — doGet
-// ============================================================
-
-// ============================================================
-//  v2 — HELPER CACHE & DEDUPE
+//  v2.1 — LAPISAN CACHE, BATCH & DEDUPE
+//  ------------------------------------------------------------
 //  Semuanya memakai CacheService (memori Google, BUKAN spreadsheet).
 //  TIDAK ADA kolom / sheet / struktur data yang berubah.
+//
+//  Tiga perbaikan dibanding v2:
+//   1. SEMUA endpoint baca ikut di-cache (dulu cuma 2 dari 9).
+//   2. Cache dipecah jadi potongan → payload besar (getAllNotas)
+//      sekarang benar-benar tersimpan. Dulu diam-diam dilewati
+//      karena batas 100KB per kunci.
+//   3. Pembuangan cache mengikuti SHEET yang benar-benar ditulis,
+//      bukan menghapus semuanya tiap kali ada yang menyimpan.
 // ============================================================
 
-/** Bungkus handler baca dengan cache memori. */
-function _cached(cacheKey, seconds, fn) {
-  var c = CacheService.getScriptCache();
+var _CHUNK      = 90000;      // batas aman per kunci (limit Google: 100KB)
+var _MAX_CHUNKS = 10;         // > 900KB → tidak usah di-cache
+var _CHUNK_TAG  = '@@chunks:';// penanda bahwa nilai dipecah jadi potongan
+
+/** Baca teks dari cache, menyatukan potongan kalau perlu. */
+function _cacheGetText(key) {
   try {
-    var hit = c.get(cacheKey);
-    if (hit) {
-      return ContentService.createTextOutput(hit)
-        .setMimeType(ContentService.MimeType.JSON);
+    var c    = CacheService.getScriptCache();
+    var head = c.get(key);
+    if (head === null || head === undefined) return null;
+    if (head.indexOf(_CHUNK_TAG) !== 0) return head;       // nilai utuh
+
+    var n = parseInt(head.slice(_CHUNK_TAG.length), 10);
+    if (!(n > 0)) return null;
+
+    var keys = [];
+    for (var i = 0; i < n; i++) keys.push(key + '~' + i);
+
+    var all = c.getAll(keys);
+    var out = '';
+    for (var j = 0; j < n; j++) {
+      var part = all[key + '~' + j];
+      if (part === null || part === undefined) return null; // potongan hilang → anggap miss
+      out += part;
     }
-  } catch (e) {}
-  var out = fn();
+    return out;
+  } catch (e) { return null; }
+}
+
+/** Simpan teks ke cache, dipecah otomatis kalau lebih dari 90KB. */
+function _cachePutText(key, txt, seconds) {
   try {
-    var txt = out.getContent();
-    if (txt.length < 95000) c.put(cacheKey, txt, seconds);  // batas 100KB/kunci
-  } catch (e) {}
-  return out;
+    var c = CacheService.getScriptCache();
+    if (txt.length <= _CHUNK) { c.put(key, txt, seconds); return; }
+
+    var n = Math.ceil(txt.length / _CHUNK);
+    if (n > _MAX_CHUNKS) return;                           // terlalu besar, lewati
+
+    var map = {};
+    for (var i = 0; i < n; i++) map[key + '~' + i] = txt.substr(i * _CHUNK, _CHUNK);
+    c.putAll(map, seconds);
+    c.put(key, _CHUNK_TAG + n, seconds);                   // kepala ditulis TERAKHIR
+  } catch (e) { /* cache penuh — bukan masalah fatal */ }
 }
 
-/** Hapus cache baca setelah operasi tulis. */
-function _bustCache(keys) {
-  try { CacheService.getScriptCache().removeAll(keys); } catch (e) {}
+// ── Peta ketergantungan ──────────────────────────────────────
+// sheets : sheet yang DIBACA oleh endpoint ini.
+//          Kalau salah satunya ditulis, cache-nya harus dibuang.
+//          Perhatikan getPelanggan: ia ikut membaca Data Penjualan
+//          dan Tagihan lewat _calcBelumTagih(), jadi menyimpan nota
+//          pun harus membuang cache pelanggan.
+// ttl    : umur cache di server, dalam detik. Ini cache BERSAMA —
+//          satu orang yang membuka halaman ikut menghangatkan
+//          cache untuk semua staf lain.
+var READS = {
+  getPelanggan:      { fn: handleGetPelanggan,      key: 'v2_pelanggan',  ttl: 300,
+                       sheets: [SH_PELANGGAN, SH_PENJUALAN, SH_TAGIHAN] },
+  getProduk:         { fn: handleGetProduk,         key: 'v2_produk',     ttl: 600,
+                       sheets: [SH_PRODUK] },
+  getTodayNotas:     { fn: handleGetTodayNotas,     key: 'v2_today',      ttl: 30,
+                       sheets: [SH_PENJUALAN, SH_ITEMS] },
+  getAllNotas:       { fn: handleGetAllNotas,       key: 'v2_allnotas',   ttl: 60,
+                       sheets: [SH_PENJUALAN, SH_ITEMS] },
+  getNotaBelumTagih: { fn: handleGetNotaBelumTagih, key: 'v2_belumtagih', ttl: 30,
+                       sheets: [SH_PENJUALAN, SH_TAGIHAN] },
+  getTagihan:        { fn: handleGetTagihan,        key: 'v2_tagihan',    ttl: 60,
+                       sheets: [SH_TAGIHAN] },
+  getKredit:         { fn: handleGetKredit,         key: 'v2_kredit',     ttl: 60,
+                       sheets: [SH_KREDIT] },
+  getLangsiran:      { fn: handleGetLangsiran,      key: 'v2_langsiran',  ttl: 30,
+                       sheets: [SH_LANGSIRAN] },
+  getStock:          { fn: handleGetStock,          key: 'v2_stock',      ttl: 60,
+                       sheets: [SH_STOCK] },
+};
+
+/**
+ * Jalankan satu endpoint baca dan kembalikan TEKS JSON-nya.
+ * Cache dicek lebih dulu; kalau meleset, handler dijalankan lalu disimpan.
+ */
+function _readText(action) {
+  var r = READS[action];
+  if (!r) return null;
+
+  var hit = _cacheGetText(r.key);
+  if (hit) return hit;
+
+  var txt = r.fn().getContent();
+  _cachePutText(r.key, txt, r.ttl);
+  return txt;
 }
 
-var _CACHE_ALL = ['v2_pelanggan', 'v2_produk'];
+/** Buang cache semua endpoint yang membaca sheet-sheet ini. */
+function _bustSheets(sheets) {
+  var keys = [];
+  for (var action in READS) {
+    var r = READS[action];
+    for (var i = 0; i < sheets.length; i++) {
+      if (r.sheets.indexOf(sheets[i]) !== -1) { keys.push(r.key); break; }
+    }
+  }
+  if (!keys.length) return;
+
+  // Potongan ikut dibuang supaya tidak ada sisa yang menyesatkan.
+  var all = keys.slice();
+  for (var k = 0; k < keys.length; k++) {
+    for (var c = 0; c < _MAX_CHUNKS; c++) all.push(keys[k] + '~' + c);
+  }
+  try { CacheService.getScriptCache().removeAll(all); } catch (e) {}
+}
 
 /** Sudah pernah memproses clientRef ini? Kembalikan hasil lamanya. */
 function _seenRef(ref) {
@@ -370,25 +460,68 @@ function _rememberRef(ref, out) {
   } catch (e) {}
 }
 
+// ============================================================
+//  WEB APP — doGet
+// ============================================================
 function doGet(e) {
-  const action = e.parameter.action;
+  var action = e.parameter.action;
 
   try {
-    if (action === 'login')              return handleLogin(e);
-    if (action === 'getPelanggan')       return _cached('v2_pelanggan', 120, handleGetPelanggan);
-    if (action === 'getProduk')          return _cached('v2_produk',    300, handleGetProduk);
-    if (action === 'getTodayNotas')      return handleGetTodayNotas();
-    if (action === 'getAllNotas')        return handleGetAllNotas();
-    if (action === 'getNotaBelumTagih') return handleGetNotaBelumTagih();
-    if (action === 'getTagihan')         return handleGetTagihan();
-    if (action === 'getKredit')          return handleGetKredit();
-    if (action === 'getLangsiran')       return handleGetLangsiran();
-    if (action === 'getStock')           return handleGetStock();
+    if (action === 'login') return handleLogin(e);
+    if (action === 'batch') return handleBatch(e);
 
-    return _json({ status: 'ok', message: 'BUKU MK API aktif.' });
-  } catch(err) {
+    if (READS[action]) {
+      return ContentService.createTextOutput(_readText(action))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return _json({ status: 'ok', message: 'BUKU MK API aktif.', version: '2.1.0' });
+  } catch (err) {
     return _json({ success: false, error: err.message });
   }
+}
+
+/**
+ * batch — beberapa endpoint baca dalam SATU eksekusi Apps Script.
+ *
+ * Kenapa ini penting: tiap panggilan ke /exec adalah eksekusi terpisah,
+ * dengan cold-start dan pembukaan spreadsheet sendiri-sendiri. tagihan.html
+ * dulu memicu LIMA eksekusi sekaligus. Sekarang satu.
+ *
+ *   GET ?action=batch&a=getPelanggan,getTagihan,getKredit
+ *   → { success:true, results:{ getPelanggan:{...}, getTagihan:{...} } }
+ *
+ * Satu endpoint yang gagal tidak menjatuhkan yang lain.
+ */
+function handleBatch(e) {
+  var raw  = String(e.parameter.a || e.parameter.actions || '');
+  var list = raw.split(',')
+                .map(function (s) { return s.trim(); })
+                .filter(function (s) { return s && READS[s]; });
+
+  if (!list.length) return _json({ success: false, error: 'Tidak ada action yang dikenal.' });
+
+  // Duplikat dibuang — halaman kadang meminta action yang sama dua kali.
+  var seen = {}, parts = [];
+  for (var i = 0; i < list.length; i++) {
+    var a = list[i];
+    if (seen[a]) continue;
+    seen[a] = true;
+
+    var txt;
+    try {
+      txt = _readText(a);
+    } catch (err) {
+      txt = JSON.stringify({ success: false, error: String((err && err.message) || err) });
+    }
+    parts.push(JSON.stringify(a) + ':' + txt);
+  }
+
+  // Dirangkai sebagai teks: payload anak sudah berupa JSON yang sah,
+  // jadi tidak perlu parse lalu stringify ulang (hemat waktu & memori).
+  return ContentService
+    .createTextOutput('{"success":true,"batch":true,"results":{' + parts.join(',') + '}}')
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 // ============================================================
@@ -429,12 +562,36 @@ function doPost(e) {
 function _routePost(p) {
   var action = p.action;
 
-  // Aksi yang mengubah data master → cache baca harus dibuang SETELAH tulis.
-  var MASTER = {
-    saveNota:1, updateNota:1,
-    savePelanggan:1, updatePelanggan:1, deletePelanggan:1,
-    saveProduk:1, updateProduk:1, deleteProduk:1,
-    saveTagihan:1, updateTagihan:1, combineTagihan:1
+  // Sheet yang BENAR-BENAR ditulis oleh tiap aksi.
+  // Dari sini _bustSheets() menyimpulkan cache mana yang jadi basi —
+  // jadi menyimpan nota tidak lagi ikut membuang cache produk.
+  //
+  // Catatan yang mudah terlewat:
+  //  • saveTagihan juga menyentuh Kredit DAN kolom kredit di Pelanggan
+  //    (lewat _addKredit / _updateKreditPelanggan / _markKreditTerpakai).
+  //  • updateLangsiran bisa menulis ke Stock saat barang diterima.
+  //  • saveStock & addLangsiran dulu TIDAK membuang cache apa pun.
+  //    Dulu tidak apa-apa karena endpoint-nya memang belum di-cache;
+  //    sekarang di-cache, jadi wajib ada di sini.
+  var WRITES = {
+    saveNota:        [SH_PENJUALAN, SH_ITEMS],
+    updateNota:      [SH_PENJUALAN, SH_ITEMS],
+
+    savePelanggan:   [SH_PELANGGAN],
+    updatePelanggan: [SH_PELANGGAN],
+    deletePelanggan: [SH_PELANGGAN],
+
+    saveProduk:      [SH_PRODUK],
+    updateProduk:    [SH_PRODUK],
+    deleteProduk:    [SH_PRODUK],
+
+    saveTagihan:     [SH_TAGIHAN, SH_KREDIT, SH_PELANGGAN],
+    updateTagihan:   [SH_TAGIHAN, SH_KREDIT, SH_PELANGGAN],
+    combineTagihan:  [SH_TAGIHAN, SH_KREDIT, SH_PELANGGAN],
+
+    saveStock:       [SH_STOCK],
+    addLangsiran:    [SH_LANGSIRAN],
+    updateLangsiran: [SH_LANGSIRAN, SH_STOCK],
   };
 
   var H = {
@@ -458,7 +615,7 @@ function _routePost(p) {
   if (!fn) return _json({ success: false, error: 'Action tidak dikenal: ' + action });
 
   var out = fn(p);
-  if (MASTER[action]) _bustCache(_CACHE_ALL);   // dibuang SETELAH tulis selesai
+  if (WRITES[action]) _bustSheets(WRITES[action]);   // dibuang SETELAH tulis selesai
   return out;
 }
 

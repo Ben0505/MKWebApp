@@ -28,7 +28,7 @@ const MK_CONFIG = {
   SESSION_HOURS: 8,
 
   /* ── Versi bundle, untuk memastikan cache browser ter-refresh ── */
-  VERSION: '2.0.0',
+  VERSION: '2.1.0',
 };
 
 /* Peringatan dini kalau URL belum diganti */

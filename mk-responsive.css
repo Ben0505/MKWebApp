@@ -1,76 +1,218 @@
 /* ============================================================
-   mk-responsive.css — Lapisan adaptif BUKU MK
+   mk-responsive.css — Lapisan adaptif BUKU MK  (v2.1)
    ------------------------------------------------------------
    Pasang di SEMUA halaman, SETELAH <style> halaman itu sendiri:
      <link rel="stylesheet" href="mk-responsive.css">
    Pasangannya: mk-responsive.js (mengisi data-label di tiap sel)
 
    Breakpoint mengikuti auth.js / nav.css yang sudah ada:
-     ≥1024px  desktop  — sidebar penuh 210px
-     640–1023 tablet   — sidebar ikon 60px
-     <640px   HP       — sidebar drawer + tabel jadi kartu
+     >=1024px  desktop  — sidebar penuh 210px
+     640-1023  tablet   — sidebar ikon 60px
+     <640px    HP       — sidebar drawer + tabel jadi kartu
+
+   ============================================================
+   CATATAN PENTING — kenapa versi ini ditulis ulang
+   ------------------------------------------------------------
+   Versi sebelumnya menyasar nama class yang TIDAK ADA di halaman
+   mana pun: .grid-3, .stat-grid, .form-row, .modal-box, .table-wrap,
+   .sticky-actions, dan seterusnya. Dari 17 kaitan, 15 tidak pernah
+   cocok dengan satu elemen pun. Praktis lapisan HP tidak bekerja.
+
+   Yang benar-benar dipakai halaman ini: .top-grid, .f2, .f3, .dg,
+   .ef-grid, .chart-grid, .sum-grid, .metric-cols, .modal, .card,
+   .field, .tab-bar — itu yang disasar sekarang.
+
+   Dan akar masalahnya satu, bukan banyak:
+
+     GRID/FLEX MIN-CONTENT BLOWOUT.
+
+   Secara bawaan, anak dari grid/flex punya min-width:auto — artinya
+   ia MENOLAK menyusut lebih kecil dari isinya. Satu tabel lebar di
+   dalamnya membuat seluruh rantai (.card -> .content -> .main)
+   ikut melar. Di input-penjualan.html, .top-grid jadi 660px di layar
+   390px: kolomnya terhitung "240px 402px".
+
+   Versi lama menutupinya dengan overflow-x:hidden di html,body.
+   Itu bukan memperbaiki — itu MEMOTONG. Bagian kanan halaman jadi
+   tidak bisa dijangkau sama sekali, termasuk tombol Simpan.
+
+   Versi ini memperbaiki sebabnya (min-width:0 di rantai tata letak)
+   dan sengaja TIDAK memasang overflow-x:hidden global. Kalau suatu
+   saat ada yang lolos, halaman akan bisa digeser ke samping — jelek,
+   tapi isinya masih terjangkau. Untuk aplikasi kerja, tergeser jauh
+   lebih aman daripada terpotong diam-diam.
    ============================================================ */
 
-/* ── Dasar: cegah scroll horizontal ─────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   1. DASAR — berlaku di tablet & HP
+   ══════════════════════════════════════════════════════════ */
 @media (max-width: 1023px) {
-  html, body { max-width: 100%; overflow-x: hidden; }
-  img, svg, canvas { max-width: 100%; height: auto; }
+
+  /* Media tidak boleh melar melebihi wadahnya */
+  img, svg, canvas, video { max-width: 100%; height: auto; }
+
+  /* ── Perbaikan inti: izinkan rantai tata letak menyusut ──
+     Tanpa ini, satu elemen lebar di kedalaman mana pun akan
+     mendorong seluruh halaman melar. */
+  .app, .main, .main-d, .content, .d-content, .page,
+  .card, .card-body, .card-header, .tab-content, .modal, .modal-bd {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Anak langsung dari grid/flex juga harus boleh menyusut */
+  .top-grid > *, .f2 > *, .f3 > *, .dg > *, .ef-grid > *,
+  .chart-grid > *, .two-col > *, .left-col > *, .right-col > *,
+  .content > *, .d-content > *, .card-body > *,
+  .sum-grid > *, .sum-grid-2 > *, .sum-grid-4 > *, .metric-cols > *,
+  .m-pr-metrics > *, .stats-strip > *, .modal-tagihan-body > *,
+  .nd-grid > *, .sg-row > *, .sr-row > *, .hk-form-row > *,
+  .bayar-row > *, .page > *, .tab-content > * {
+    min-width: 0;
+  }
+
+  /* Teks panjang tanpa spasi (nama produk, nomor rekening) jangan
+     dijadikan alasan melar.
+
+     Sengaja break-word, BUKAN anywhere: 'anywhere' ikut mengubah
+     perhitungan min-content, sehingga angka pendek pun dipatahkan —
+     "12" sempat tampil jadi "1 2" di pil topbar. 'break-word' hanya
+     memutus kata yang memang tidak muat sendirian. */
+  .info-val, .sc-val, .sum-val, .nd-val, .val {
+    overflow-wrap: break-word;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
-   TABLET  640–1023px
+   2. TABLET  640–1023px
    ══════════════════════════════════════════════════════════ */
 @media (min-width: 640px) and (max-width: 1023px) {
 
-  /* Grid apa pun dengan >2 kolom tetap dipakai tapi dipadatkan */
-  .grid-3, .grid-4, .stat-grid, .cards-grid,
-  [class*="col-3"], [class*="col-4"] {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  /* Tiga kolom terlalu sempit di tablet — jadikan dua */
+  .f3, .chart-grid, .metric-cols { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .m-pr-metrics, .stats-strip     { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+  /* .top-grid & .modal-tagihan-body SENGAJA dibiarkan dua kolom di tablet.
+     Dulu keduanya meluber (main jadi 873px di layar 820px), tapi sebabnya
+     bukan jumlah kolom — melainkan anak grid yang menolak menyusut.
+     Setelah min-width:0 di blok 1, dua kolom muat dengan baik. Tablet
+     adalah perangkat utama di lapangan; membuang separuh lebarnya
+     menjadi satu kolom justru merugikan. */
+
+  /* Tabel lebar: digeser di dalam wadahnya sendiri, bukan melebarkan halaman */
+  .card > div[style*="overflow"], .tbl, .nt-table-wrap {
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
   }
 
-  /* Form 2 kolom tetap 2 kolom; form 3+ kolom jadi 2 */
-  .form-row, .field-row { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-
-  /* Tabel lebar: geser horizontal daripada dipaksa mengecil */
-  .table-wrap, .tbl-wrap, .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { min-width: 640px; }
-
-  /* Modal jangan mepet tepi */
-  .modal-box, .modal-card, .m-box { max-width: 92vw !important; }
-
-  .d-content { padding: 18px 20px 60px; }
+  .modal { max-width: 92vw !important; }
+  .d-content, .content { padding-left: 20px; padding-right: 20px; }
 }
 
 /* ══════════════════════════════════════════════════════════
-   HP  <640px
+   3. HP  <640px
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 639px) {
 
-  /* ── Target sentuh minimal 44px (pedoman aksesibilitas) ── */
-  button, .btn, .nav-item, .tab, .chip, select,
-  input[type=text], input[type=number], input[type=date], input[type=password] {
+  /* ── Target sentuh & ukuran huruf ──────────────────────── */
+  button, .btn, .nav-item, .tab, .chip, .qbtn, .modal-x {
     min-height: 44px;
   }
-  /* 16px mencegah iOS auto-zoom saat fokus input */
-  input, select, textarea { font-size: 16px !important; }
+  .btn-sm, .qbtn { min-height: 38px; }          /* tombol dalam baris item */
 
-  /* ── Semua grid jadi 1 kolom ── */
-  .grid-2, .grid-3, .grid-4, .stat-grid, .cards-grid,
-  .form-row, .field-row,
-  [class*="col-2"], [class*="col-3"], [class*="col-4"] {
-    grid-template-columns: 1fr !important;
+  /* 16px mencegah iOS memperbesar layar sendiri saat input difokus */
+  input, select, textarea { font-size: 16px !important; }
+  input[type=text], input[type=number], input[type=date],
+  input[type=password], select { min-height: 44px; }
+
+  /* ── Semua tata letak multi-kolom jadi satu kolom ────────
+     Nama class di bawah ini diambil dari halaman yang sebenarnya. */
+  .top-grid, .f2, .f3, .dg, .ef-grid, .chart-grid, .two-col,
+  .modal-tagihan-body, .nd-grid, .sg-row, .sg-hd, .sr-head,
+  .prod-row, .prod-col-hd, .m-date-row, .kredit-card, .nota-card {
+    grid-template-columns: minmax(0, 1fr) !important;
     gap: 10px !important;
   }
 
-  /* Ringkasan angka tetap 2 kolom — lebih enak dibaca sekilas */
-  .stat-grid, .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  /* Angka ringkasan tetap 2 kolom — lebih enak dibaca sekilas
+     dan tidak membuat halaman jadi sangat panjang */
+  .sum-grid, .sum-grid-2, .sum-grid-4, .metric-cols,
+  .m-pr-metrics, .stats-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
 
-  .d-content { padding: calc(var(--header-h, 52px) + 12px) 12px 84px; }
-  .card, .panel, .box { border-radius: 10px; }
+  /* Baris entri item (produk / qty / harga / hapus).
+     Ini yang paling sering meluber: kolomnya fixed-width.
+     Dijadikan dua kolom yang mengalir, tombol hapus di ujung. */
+  .hk-form-row, .bayar-row, .nd-item-row, .ir-m, .sr-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 8px !important;
+    align-items: center !important;
+  }
+
+  /* ── Topbar: judul + pil + nama user tidak muat di 390px ──
+     Pil angka yang dipertahankan (isinya ringkas dan berguna),
+     judul dipendekkan, nama user versi desktop disembunyikan
+     karena avatar mobile (#m-av) sudah menggantikannya. */
+  .topbar { padding-left: 12px !important; padding-right: 12px !important; gap: 8px; }
+  .topbar-title {
+    font-size: 13px !important;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 0 1 auto; min-width: 0;
+  }
+  .topbar-pills { flex: 0 0 auto; gap: 6px !important; }
+  .pill {
+    white-space: nowrap;
+    flex: 0 0 auto;
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+  }
+  .pill .lbl { display: none; }          /* label panjang dibuang, angkanya yang penting */
+  #d-topbar-user { display: none !important; }
+
+  /* Di layar sangat sempit, judul mengalah sepenuhnya */
+  @media (max-width: 379px) {
+    .topbar-title { display: none; }
+  }
+
+  /* ── Jarak tepi ───────────────────────────────────────── */
+  .content, .d-content, .page {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .card-body, .card-header, .card-hd { padding-left: 12px !important; padding-right: 12px !important; }
+  .card { border-radius: 10px; }
+
+  /* ── Bilah tab: digeser ke samping, bukan melebarkan halaman ──
+     Sekarang benar-benar bekerja: induknya (.card) sudah dibatasi
+     min-width:0 di blok 1, jadi wadah ini bisa menyusut. */
+  .tab-bar, .page-tabs, .tabs {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .tab-bar::-webkit-scrollbar,
+  .page-tabs::-webkit-scrollbar,
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab-bar > *, .page-tabs > *, .tabs > * { flex: 0 0 auto; white-space: nowrap; }
+
+  /* Bilah tab yang berada di atas .page tertimbun topbar melayang
+     (auth.js membuat .topbar jadi fixed di HP). */
+  .main > .page-tabs {
+    margin-top: var(--header-h, 52px);
+    position: sticky;
+    top: var(--header-h, 52px);
+    z-index: 19;
+    background: var(--surface, #fff);
+  }
+  .page-tabs ~ .page { padding-top: 12px !important; }
 
   /* ── TABEL → KARTU ──────────────────────────────────────
      Aktif hanya untuk tabel bertanda .mk-cards
-     (mk-responsive.js menandai otomatis).                  */
+     (mk-responsive.js menandainya otomatis).                */
   table.mk-cards,
   table.mk-cards thead,
   table.mk-cards tbody,
@@ -134,81 +276,60 @@
   }
   table.mk-cards td.mk-actions::before { display: none; }
 
-  /* Tabel yang TIDAK boleh jadi kartu (mis. tabel cetak nota / input item)
-     tetap bisa digeser horizontal */
-  table:not(.mk-cards) { display: table; }
-  .table-wrap, .tbl-wrap, .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* Tabel yang sengaja TIDAK dijadikan kartu (tabel cetak nota,
+     tabel input item) tetap bisa digeser DI DALAM wadahnya. */
+  table.mk-keep-table { display: table; }
+  .mk-scroll, .nt-table-wrap, .tbl {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
 
-  /* ── Modal jadi bottom-sheet ── */
-  .modal-box, .modal-card, .m-box {
+  /* ── Modal jadi lembar bawah (bottom sheet) ─────────────
+     .modal adalah nama yang benar-benar dipakai 8 halaman. */
+  .modal {
     max-width: 100% !important;
     width: 100% !important;
     max-height: 92vh;
     border-radius: 14px 14px 0 0 !important;
     margin: 0 !important;
-    position: fixed !important;
-    left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Latar modal menempel ke bawah layar */
+  .modal-bd, .overlay, .modal-backdrop {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  /* Isi modal yang panjang digulung di dalam modal, bukan di halaman */
+  .modal > .modal-bd, .modal-body, .modal-content {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  .modal, .overlay { align-items: flex-end !important; padding: 0 !important; }
-
-  /* ── Bilah aksi lengket di bawah (Simpan / Batal) ── */
-  .sticky-actions, .form-actions, .modal-foot {
+  /* Kaki modal (Simpan / Batal) selalu terlihat */
+  .modal-ft, .modal-foot, .modal-actions {
     position: sticky;
     bottom: 0;
     background: var(--surface, #fff);
     border-top: 1px solid var(--border, #D9D4CC);
-    padding: 10px 12px;
     padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    display: flex;
-    gap: 8px;
     z-index: 5;
   }
-  .sticky-actions > *, .form-actions > * { flex: 1; }
+  .modal-ft > .btn, .modal-foot > .btn { flex: 1; }
 
-  /* ── Autocomplete: lebar penuh, di atas keyboard ── */
-  .ac-list, #ac-list, [id$="-drop"] {
+  /* ── Daftar autocomplete: jangan lebih tinggi dari ruang di
+        atas papan ketik ── */
+  .ac-list, #ac-list, [id$="-drop"], .drop {
     max-height: 45vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Sembunyikan hiasan yang tidak esensial di layar kecil */
+  /* Hiasan yang tidak esensial di layar kecil */
   .desktop-only, .hide-mobile { display: none !important; }
 
-  /* ── PERBAIKAN: bilah tab tertutup topbar melayang ──────
-     auth.js membuat .topbar jadi position:fixed di HP, lalu memberi
-     padding-top ke .content/.d-content/.page. Tapi .page-tabs berada
-     DI ATAS .page dan tidak kebagian offset itu, jadi tertimbun
-     di balik header. (Terlihat di tagihan.html.)                    */
-  .main > .page-tabs {
-    margin-top: var(--header-h, 52px);
-    position: sticky;
-    top: var(--header-h, 52px);
-    z-index: 19;
-    background: var(--surface, #fff);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .main > .page-tabs::-webkit-scrollbar { display: none; }
-  .main > .page-tabs .page-tab { white-space: nowrap; flex: 0 0 auto; }
-
-  /* Offset sudah diambil alih .page-tabs — jangan dobel */
-  .page-tabs ~ .page { padding-top: 12px !important; }
-
-  /* Bilah tab lain (langsiran) — geser samping kalau sempit */
-  .tab-bar {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .tab-bar::-webkit-scrollbar { display: none; }
-  .tab-bar .tab { flex: 0 0 auto; }
-
-  /* Ruang aman untuk banner koneksi mk-net.js */
-  body { padding-bottom: env(safe-area-inset-bottom); }
+  /* Ruang aman untuk banner koneksi mk-net.js + area gestur iPhone */
+  body { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
 }
 
 /* Utilitas kebalikan */

@@ -64,26 +64,41 @@
       if (!raw) return null;
       const o = JSON.parse(raw);
       if (!o || typeof o.ts !== 'number') return null;
-      return o;                       // { data, ts, dirty }
+      return o;                       // { data, ts, dirty, fp }
     } catch (e) { return null; }
   }
 
-  function writeRaw(action, data, dirty) {
+  /** Tulis satu rekaman utuh; kalau kuota penuh, buang yang paling tua. */
+  function store(action, record) {
     try {
-      S.setItem(key(action), JSON.stringify({ data, ts: Date.now(), dirty: !!dirty }));
-    } catch (e) {
-      // Kuota penuh → buang cache paling tua lalu coba sekali lagi
-      try {
-        const keys = Object.keys(S).filter(k => k.indexOf(NS) === 0);
-        keys.sort((a, b) => {
-          const ta = (JSON.parse(S.getItem(a) || '{}').ts) || 0;
-          const tb = (JSON.parse(S.getItem(b) || '{}').ts) || 0;
-          return ta - tb;
-        });
-        if (keys.length) S.removeItem(keys[0]);
-        S.setItem(key(action), JSON.stringify({ data, ts: Date.now(), dirty: !!dirty }));
-      } catch (e2) { /* menyerah dengan tenang */ }
-    }
+      S.setItem(key(action), record);
+      return;
+    } catch (e) { /* kemungkinan kuota penuh */ }
+
+    try {
+      const keys = Object.keys(S).filter(k => k.indexOf(NS) === 0 && k !== key(action));
+      keys.sort((a, b) => {
+        const ta = (JSON.parse(S.getItem(a) || '{}').ts) || 0;
+        const tb = (JSON.parse(S.getItem(b) || '{}').ts) || 0;
+        return ta - tb;
+      });
+      if (keys.length) S.removeItem(keys[0]);
+      S.setItem(key(action), record);
+    } catch (e2) { /* menyerah dengan tenang */ }
+  }
+
+  function writeRaw(action, data, dirty) {
+    store(action, JSON.stringify({ data, ts: Date.now(), dirty: !!dirty }));
+  }
+
+  /** Versi hemat: payload sudah berupa teks JSON, jadi tidak di-stringify
+   *  ulang. Dipakai absorb() pada jalur panas (getAllNotas dsb).          */
+  function writeRawText(action, dataTxt, fp, dirty) {
+    store(action,
+      '{"data":' + dataTxt +
+      ',"ts":'   + Date.now() +
+      ',"dirty":'+ (dirty ? 'true' : 'false') +
+      ',"fp":'   + JSON.stringify(fp) + '}');
   }
 
   const softTTL = action => MK_CACHE.TTL[action] || 120000;
@@ -109,6 +124,17 @@
     throw lastErr;
   }
 
+  /* ─── Sidik jari murah untuk mendeteksi perubahan ──────
+     Dulu tiap revalidate menjalankan JSON.stringify TIGA kali pada
+     payload yang sama (dua untuk membandingkan, satu untuk menyimpan).
+     Pada getAllNotas yang ratusan KB, itu terasa sebagai macet
+     sesaat di HP. Sekarang: satu stringify, lalu hash 32-bit.      */
+  function fingerprint(txt) {
+    var h = 5381;
+    for (var i = 0; i < txt.length; i++) h = ((h * 33) ^ txt.charCodeAt(i)) >>> 0;
+    return txt.length + ':' + h;
+  }
+
   /* ─── Event bus untuk refresh latar belakang ──────────── */
   const listeners = [];
   function emitRefresh(action, data) {
@@ -117,24 +143,113 @@
     if (!listeners.length) showUpdatePill();
   }
 
-  const inflight = {};   // dedupe permintaan paralel untuk action yang sama
+  /* ─── Penggabungan permintaan (batching) ───────────────────
+     Inti perbaikan kecepatan v2.1.
 
+     Tiap panggilan ke /exec adalah satu eksekusi Apps Script
+     tersendiri — dengan cold start dan pembukaan spreadsheet
+     masing-masing. tagihan.html memanggil Promise.all dengan LIMA
+     action sekaligus, jadi dulu itu lima eksekusi berurutan.
+
+     Karena Promise.all memanggil semuanya dalam satu tick JS, kita
+     cukup menampung permintaan sesaat lalu mengirimkannya sebagai
+     SATU permintaan ?action=batch. Halaman tidak perlu diubah
+     sedikit pun — mereka tetap memanggil MK_CACHE.fetch seperti biasa.
+
+     Kalau backend belum di-deploy ulang (belum kenal action=batch),
+     lapisan ini otomatis mundur ke permintaan satuan. Jadi frontend
+     baru tetap aman dijalankan di atas Code.gs lama.               */
+  const inflight = {};        // action -> Promise (dedupe permintaan paralel)
+  const waiting  = {};        // action -> [{resolve, reject}]
+  let   batchTimer = null;
+  let   batchUrl   = null;
+
+  /** Simpan hasil ke cache + beri tahu halaman kalau isinya berubah. */
+  function absorb(action, d) {
+    if (!d || !d.success) return;
+    const txt  = JSON.stringify(d);          // satu-satunya stringify
+    const fp   = fingerprint(txt);
+    const prev = readRaw(action);
+    const changed = !prev || prev.fp !== fp;
+
+    writeRawText(action, txt, fp, false);
+    if (changed) emitRefresh(action, d);
+  }
+
+  function settle(action, data, err) {
+    const w = waiting[action] || [];
+    delete waiting[action];
+    delete inflight[action];
+    if (err) w.forEach(x => x.reject(err));
+    else     w.forEach(x => x.resolve(data));
+  }
+
+  /** Ambil satu action sendirian (fallback & kasus permintaan tunggal). */
+  async function fetchSingle(action, url) {
+    try {
+      const d = await netGet(`${url}?action=${action}`);
+      setNetState(true);
+      absorb(action, d);
+      settle(action, d);
+      return d;
+    } catch (e) {
+      setNetState(false);
+      settle(action, null, e);
+      throw e;
+    }
+  }
+
+  async function flushBatch() {
+    batchTimer = null;
+    const actions = Object.keys(waiting);
+    const url     = batchUrl;
+    if (!actions.length || !url) return;
+
+    // Cuma satu → tidak ada gunanya dibungkus batch.
+    if (actions.length === 1) {
+      await fetchSingle(actions[0], url).catch(() => {});
+      return;
+    }
+
+    let res = null;
+    try {
+      res = await netGet(`${url}?action=batch&a=${encodeURIComponent(actions.join(','))}`);
+    } catch (e) {
+      // Batch gagal (jaringan / URL terlalu panjang) → coba satuan.
+      setNetState(false);
+      await Promise.all(actions.map(a => fetchSingle(a, url).catch(() => {})));
+      return;
+    }
+
+    // Backend lama tidak mengenal action=batch dan membalas pesan status
+    // biasa. Kenali itu, lalu mundur ke permintaan satuan.
+    if (!res || !res.batch || !res.results) {
+      await Promise.all(actions.map(a => fetchSingle(a, url).catch(() => {})));
+      return;
+    }
+
+    setNetState(true);
+    actions.forEach(a => {
+      const d = res.results[a];
+      if (d === undefined) { settle(a, null, new Error('batch: ' + a + ' tidak dibalas')); return; }
+      absorb(a, d);
+      settle(a, d);
+    });
+  }
+
+  /** Minta data segar dari server. Otomatis digabung dengan permintaan
+   *  lain yang terjadi pada tick yang sama. */
   function revalidate(action, gasUrl) {
     if (inflight[action]) return inflight[action];
-    const p = netGet(`${gasUrl}?action=${action}`)
-      .then(d => {
-        if (d && d.success) {
-          const prev = readRaw(action);
-          writeRaw(action, d, false);
-          const changed = !prev || JSON.stringify(prev.data) !== JSON.stringify(d);
-          if (changed) emitRefresh(action, d);
-        }
-        setNetState(true);
-        return d;
-      })
-      .catch(e => { setNetState(false); throw e; })
-      .finally(() => { delete inflight[action]; });
+
+    const p = new Promise((resolve, reject) => {
+      (waiting[action] = waiting[action] || []).push({ resolve, reject });
+    });
     inflight[action] = p;
+    p.catch(() => {});          // penolakan ditangani pemanggil; jangan bising di console
+
+    batchUrl = gasUrl || batchUrl;
+    if (!batchTimer) batchTimer = setTimeout(flushBatch, 0);
     return p;
   }
 
@@ -154,7 +269,9 @@
   // TAPI jangan hapus datanya (masih berguna kalau jaringan mati)
   MK_CACHE.bust = function (action) {
     const o = readRaw(action);
-    if (o) writeRaw(action, o.data, true);
+    // fp dipertahankan: kalau server ternyata mengembalikan isi yang sama,
+    // halaman tidak perlu dikejutkan pil "data baru tersedia".
+    if (o) store(action, JSON.stringify({ data: o.data, ts: o.ts, dirty: true, fp: o.fp }));
     else   { try { S.removeItem(key(action)); } catch (e) {} }
   };
 
@@ -175,7 +292,7 @@
       // Mundurkan ts tepat melewati soft-TTL: data dianggap "basi" sehingga
       // dipicu refresh latar belakang, TAPI datanya tetap dipakai untuk render instan.
       const ts = Math.max(Date.now() - softTTL(a) - 1000, Date.now() - HARD_TTL + 60000);
-      try { S.setItem(key(a), JSON.stringify({ data: o.data, ts, dirty: false })); }
+      try { S.setItem(key(a), JSON.stringify({ data: o.data, ts, dirty: false, fp: o.fp })); }
       catch (e) {}
     });
   };
@@ -434,10 +551,73 @@
     };
   })();
 
+  /* ─── Pemanasan otomatis halaman berikutnya ────────────────
+     MK_NET.warm() sudah ada sejak v2 tapi tidak pernah dipanggil
+     dari mana pun — jadi selama ini tidak berguna.
+
+     Navigasi di aplikasi ini memuat ulang halaman sepenuhnya
+     (MK_AUTH._go → window.location). Karena cache disimpan di
+     localStorage dan dipakai bersama antar halaman, data yang
+     diambil sekarang tetap ada saat halaman berikutnya dibuka.
+
+     Jadi: setelah halaman ini selesai dan browser menganggur,
+     ambil data yang BELUM segar untuk halaman lain yang boleh
+     dibuka oleh peran user ini. Berkat lapisan batching di atas,
+     semuanya berangkat sebagai SATU permintaan.
+
+     Efeknya: klik menu → halaman tampil seketika, tanpa spinner.
+
+     Ini tidak pernah menghambat halaman yang sedang dibuka:
+     dijalankan lewat requestIdleCallback dan baru setelah jeda. */
+  const PAGE_NEEDS = {
+    'input-penjualan.html': ['getPelanggan', 'getProduk', 'getTodayNotas'],
+    'data-penjualan.html':  ['getAllNotas', 'getPelanggan', 'getProduk'],
+    'tagihan.html':         ['getPelanggan', 'getNotaBelumTagih', 'getTagihan', 'getKredit', 'getAllNotas'],
+    'pelanggan.html':       ['getPelanggan', 'getProduk', 'getTagihan', 'getKredit'],
+    'produk.html':          ['getProduk'],
+    'langsiran.html':       ['getProduk', 'getLangsiran'],
+    'stock.html':           ['getProduk', 'getStock'],
+    'ringkasan.html':       ['getProduk', 'getAllNotas', 'getLangsiran', 'getStock'],
+    'stats.html':           ['getAllNotas', 'getProduk', 'getLangsiran', 'getStock'],
+  };
+
+  // Halaman yang benar-benar bisa dibuka tiap peran (mengikuti sidebar auth.js).
+  const ROLE_PAGES = {
+    produksi:  ['langsiran.html'],
+    packaging: ['input-penjualan.html', 'data-penjualan.html', 'langsiran.html', 'stock.html',
+                'ringkasan.html', 'tagihan.html', 'stats.html', 'pelanggan.html', 'produk.html'],
+  };
+  ROLE_PAGES.admin = ROLE_PAGES.packaging;
+
+  MK_NET.autoWarm = function () {
+    if (!navigator.onLine) return;
+    if (typeof MK_CONFIG === 'undefined' || !MK_CONFIG.GAS) return;
+
+    let role = '';
+    try { role = (MK_AUTH.get() || {}).role || ''; } catch (e) {}
+    const pages = ROLE_PAGES[role];
+    if (!pages) return;                       // belum login → jangan ambil apa-apa
+
+    const here = (location.pathname.split('/').pop() || '').toLowerCase();
+
+    // Kumpulkan action untuk halaman LAIN yang boleh dibuka user ini.
+    const want = {};
+    pages.forEach(pg => {
+      if (pg === here) return;                // halaman ini mengurus dirinya sendiri
+      (PAGE_NEEDS[pg] || []).forEach(a => { want[a] = 1; });
+    });
+
+    MK_NET.warm(MK_CONFIG.GAS, Object.keys(want));
+  };
+
   window.addEventListener('online',  () => { setNetState(true); MK_NET.flush(); });
   window.addEventListener('offline', () => setNetState(false));
   window.addEventListener('DOMContentLoaded', () => {
     renderBanner();
     if (navigator.onLine && qRead().length) MK_NET.flush();
+
+    // Beri halaman ini kesempatan menyelesaikan pengambilan datanya sendiri
+    // lebih dulu, baru panaskan halaman lain saat browser menganggur.
+    setTimeout(() => { try { MK_NET.autoWarm(); } catch (e) {} }, 2500);
   });
 })();
