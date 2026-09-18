@@ -15,7 +15,7 @@
 const MK_CONFIG = {
 
   /* ── URL deployment Apps Script (WAJIB DIGANTI) ─────────── */
-  GAS: 'GANTI_DENGAN_URL_DEPLOYMENT_BARU',
+  GAS: 'https://script.google.com/macros/s/AKfycbxMsghq6dlBhXUrI39FO6k2Ici4EqmLpInBTYFOTEjhv9Hc0F3cnMfN0idWtKbQ0o3cig/exec',
 
   /* ── Label lingkungan — muncul di pojok sidebar ──────────
      Isi '' untuk menyembunyikan. Berguna supaya tidak tertukar
