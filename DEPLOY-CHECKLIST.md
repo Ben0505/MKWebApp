@@ -259,7 +259,7 @@ the website, and that is a real improvement, but it is not the same as fixing
 this. The passwords are still stored as plain text in the Users sheet and still
 sent in a URL query string at login.
 
-For a test site with an unlisted `pages.dev` URL, your realistic exposure is
+For a test site with an unlisted `workers.dev` URL, your realistic exposure is
 low. It is worth knowing that "nobody has the link" is the only thing
 protecting it, and that is luck rather than a security model. Fixing it
 properly — a signed token checked in every handler, hashed passwords, and
