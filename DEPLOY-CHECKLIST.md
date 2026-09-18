@@ -14,10 +14,11 @@ most of it waiting on Google.
    Cloudflare defaults to `main`, which is now the deployable branch, so
    leave every branch setting alone. All future changes go to `main` too.
 
-2. **Cloudflare's output directory must be `public`.**
+2. **Which folder gets published is already decided, in `wrangler.jsonc`.**
    `Code.gs` and these guides live at the repo root, *outside* `public/`,
-   so they never get published. If you point Cloudflare at the root instead,
-   your backend source becomes downloadable at `/Code.gs`.
+   and `wrangler.jsonc` publishes only `public/`. There is no dashboard
+   field to get wrong, and the setting is in Git so it cannot be lost to a
+   stray click later.
 
 3. **Your Cloudflare email and your GitHub email do not need to match.**
    Cloudflare asks GitHub for permission to read the repo. You log into
@@ -106,48 +107,63 @@ the test site with the real one. Leave it as is.
 
 ---
 
-## Step 3 — Cloudflare Pages
+## Step 3 — Cloudflare
+
+Cloudflare now steers new projects to **Workers** rather than Pages. Pages
+still exists but is de-emphasised in the dashboard. We use Workers, which is
+what Cloudflare recommends for new projects, and `wrangler.jsonc` in this
+repo already configures it.
 
 1. Sign up / log in at `dash.cloudflare.com` with your new email.
 
-2. In the sidebar: **Workers & Pages** → **Create** → **Pages** tab →
-   **Connect to Git**.
+2. **Compute (Workers)** → **Create** → **Import a repository**
+   (older wording: *Connect to Git*).
 
-3. Click **Connect GitHub**. A GitHub window opens — **log in as `Ben0505`**
-   here (not the new account). Grant access to the `MKWebApp` repository.
-   You can choose "Only select repositories" and pick just this one.
+3. When the GitHub window opens, **log in as `Ben0505`** there, not the new
+   account. Grant access to the `MKWebApp` repository — "Only select
+   repositories" and pick just this one is fine.
 
-4. Select the `MKWebApp` repo → **Begin setup**.
-
-5. **Build settings — the important screen:**
+4. On the **Set up your application** screen:
 
    | Field | Value |
    |---|---|
-   | Project name | `bukumk-test` (becomes `bukumk-test.pages.dev`) |
-   | Production branch | `main` — already correct, leave it |
-   | Framework preset | **None** |
-   | Build command | **leave empty** |
-   | Build output directory | **`public`** |
+   | Project name | **`bukumk-test`** — must match `name` in `wrangler.jsonc` |
+   | Build command | **leave empty** (there is no build) |
+   | Deploy command | `npx wrangler deploy` — the default, leave it |
+   | Builds for non-production branches | leave ticked, harmless |
+   | Protect with Cloudflare Access | see the note below |
 
-   **Build output directory is the one that matters.** If you leave it blank,
-   Cloudflare serves the repository root and `Code.gs` becomes downloadable
-   at `/Code.gs`. Set it to `public`.
+   Under **Advanced settings**, leave `Path` as `/` and the non-production
+   deploy command as `npx wrangler versions upload`.
 
-   > If you ever do need to change the production branch, it is not on this
-   > screen after the project exists. It lives at
-   > **Settings → Builds & deployments → Configure Production deployments**
-   > (newer accounts: **Settings → Builds → Branch control**). Saving it does
-   > not redeploy by itself — trigger a new deployment afterwards.
+   > **The project name matters.** `wrangler.jsonc` says `bukumk-test`. If you
+   > name the project something else, wrangler will create a *second*,
+   > separate Worker under the name in the file and you will be looking at an
+   > empty site wondering why.
 
-6. **Save and Deploy.** It takes under a minute — there is no build step,
-   Cloudflare just copies the files.
+   > You will **not** see "Production branch", "Framework preset" or "Build
+   > output directory" on this screen. Those are Pages fields and do not exist
+   > in the Workers flow. Nothing is missing — `wrangler.jsonc` covers them.
 
-7. You get a URL like `https://bukumk-test.pages.dev`.
+5. **Deploy.** Under a minute; there is no build step, Cloudflare just
+   uploads the 17 files in `public/`.
 
-From now on, every push to `main` redeploys automatically. You will not need
-to touch this screen again.
+6. You get a URL like `https://bukumk-test.<your-subdomain>.workers.dev`.
 
----
+### Worth considering: Protect with Cloudflare Access
+
+That toggle on the setup screen puts a login gate in front of the whole site,
+so only email addresses you nominate can reach it at all.
+
+Given there is still no authentication on the Apps Script backend (see the
+last section), turning this on is the single cheapest thing you can do to
+close that gap for the test site. It costs nothing on the free plan and takes
+a couple of minutes: you list the emails allowed in, and everyone else gets
+a Cloudflare login screen before they ever see the app.
+
+The trade-off is that your staff would have to pass that gate too, which is
+friction during testing. Your call — but if you ever put real customer data
+into this site, turn it on.
 
 ## Step 4 — Verify (10 minutes, do not skip)
 

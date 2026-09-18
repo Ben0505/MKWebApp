@@ -1,0 +1,31 @@
+{
+  // ══════════════════════════════════════════════════════════════
+  //  BUKU MK — konfigurasi deploy Cloudflare (Workers Static Assets)
+  //  ──────────────────────────────────────────────────────────────
+  //  Aplikasi ini murni statis: tidak ada kode Worker sama sekali.
+  //  Karena tidak ada "main", Cloudflare hanya menyajikan berkas
+  //  dari folder "assets.directory" di bawah ini.
+  //
+  //  KENAPA "./public" DAN BUKAN "." —
+  //  Ini pengaman yang penting, bukan sekadar kerapian.
+  //  Code.gs berisi kode backend dan berada di akar repositori,
+  //  DI LUAR public/. Kalau folder ini diarahkan ke ".", seluruh
+  //  isi repositori ikut tersaji dan siapa pun bisa mengunduh
+  //  Code.gs dari https://<situs>/Code.gs.
+  //
+  //  Dengan menuliskannya di berkas ini (bukan di kotak isian
+  //  dashboard), pengaturan itu ikut tersimpan di Git dan tidak
+  //  bisa hilang karena salah klik di kemudian hari.
+  // ══════════════════════════════════════════════════════════════
+
+  // Harus SAMA dengan "Project name" di dashboard Cloudflare.
+  // Kalau berbeda, wrangler akan membuat Worker kedua yang terpisah.
+  "name": "bukumk-test",
+
+  "compatibility_date": "2026-09-18",
+
+  "assets": {
+    "directory": "./public",
+    "html_handling": "none"
+  }
+}

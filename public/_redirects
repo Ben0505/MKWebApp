@@ -1,0 +1,15 @@
+# Cloudflare membaca berkas ini sebagai aturan pengalihan.
+# Berkas ini sendiri TIDAK ikut disajikan ke publik.
+#
+# Kenapa perlu:
+# wrangler.jsonc memakai "html_handling": "none" supaya alamat
+# .html disajikan apa adanya. Tanpa itu, Cloudflare mengalihkan
+# /tagihan.html -> /tagihan, sehingga SETIAP perpindahan halaman
+# kena satu pengalihan tambahan (aplikasi ini berpindah lewat
+# location.href = 'tagihan.html'). Untuk aplikasi yang sedang
+# dikejar kecepatannya, itu kebalikan dari yang kita mau.
+#
+# Efek sampingnya: alamat akar "/" tidak lagi otomatis membuka
+# index.html. Satu baris di bawah ini menutup celah itu.
+
+/    /login.html    302
