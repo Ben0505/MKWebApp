@@ -74,13 +74,23 @@ function setupUsers() {
   _formatHeader(sh, headers.length);
   sh.setFrozenRows(1);
 
-  // Data user awal — ubah password setelah setup!
+  // Data user awal — HANYA untuk sheet kosong yang benar-benar baru.
+  //
+  // Password asli sudah DIKELUARKAN dari file ini. Alasannya:
+  // file ini ikut tersimpan di repositori dan dulu juga ikut terunggah
+  // ke hosting, sehingga password seluruh staf bisa diunduh siapa pun.
+  //
+  // Sheet Users Anda yang sekarang TIDAK terpengaruh — fungsi ini
+  // berhenti lebih dulu kalau sheet sudah ada isinya (lihat penjaga
+  // getLastRow() di atas). Ganti nilai GANTI_SAYA hanya kalau Anda
+  // memang sedang menyiapkan sheet kosong dari nol, lalu ubah
+  // passwordnya langsung di sheet setelah setup.
   const users = [
-    ['u1','BENNY',  'benny', 'mk123',      'admin',     'BE','#534AB7','#F0EFFE','TRUE'],
-    ['u2','WAHYU',  'wahyu', 'produksi1',  'produksi',  'WH','#185FA5','#E6F1FB','TRUE'],
-    ['u3','HENDRA', 'hendra','produksi2',  'produksi',  'HD','#8B5C00','#FEF8EC','TRUE'],
-    ['u4','RINI',   'rini',  'packing1',   'packaging', 'RI','#1A6B45','#EDF6F1','TRUE'],
-    ['u5','SARI',   'sari',  'packing2',   'packaging', 'SA','#1A6B45','#EDF6F1','TRUE'],
+    ['u1','BENNY',  'benny', 'GANTI_SAYA', 'admin',     'BE','#534AB7','#F0EFFE','TRUE'],
+    ['u2','WAHYU',  'wahyu', 'GANTI_SAYA', 'produksi',  'WH','#185FA5','#E6F1FB','TRUE'],
+    ['u3','HENDRA', 'hendra','GANTI_SAYA', 'produksi',  'HD','#8B5C00','#FEF8EC','TRUE'],
+    ['u4','RINI',   'rini',  'GANTI_SAYA', 'packaging', 'RI','#1A6B45','#EDF6F1','TRUE'],
+    ['u5','SARI',   'sari',  'GANTI_SAYA', 'packaging', 'SA','#1A6B45','#EDF6F1','TRUE'],
   ];
   users.forEach(r => sh.appendRow(r));
 
