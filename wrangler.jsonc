@@ -24,6 +24,13 @@
 
   "compatibility_date": "2026-09-18",
 
+  // Menyalakan alamat <name>.<subdomain>.workers.dev.
+  // Cloudflare mematikan ini secara bawaan di sebagian akun — Worker
+  // berhasil ter-deploy tapi tidak punya alamat sama sekali, dan
+  // dashboard menulis "No URLs enabled". Ditulis di sini supaya
+  // tetap menyala di setiap deploy berikutnya.
+  "workers_dev": true,
+
   "assets": {
     "directory": "./public",
     "html_handling": "none"
