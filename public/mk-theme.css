@@ -1,0 +1,660 @@
+/* ============================================================
+   mk-theme.css — Lapisan tampilan BUKU MK (v2.2)
+   ------------------------------------------------------------
+   Dipasang PALING AKHIR di setiap halaman:
+     <style> ...halaman... </style>
+     <link rel="stylesheet" href="mk-responsive.css">
+     <link rel="stylesheet" href="mk-theme.css">   <-- ini
+
+   ============================================================
+   ATURAN BERKAS INI: HANYA TAMPILAN.
+   Tidak ada satu pun perilaku, rumus, atau alur kerja yang
+   berubah. Tidak ada JavaScript, tidak ada HTML. Semua yang
+   ada di sini hanya mengubah rupa — sehingga kalau ada yang
+   tidak disukai, cukup hapus satu baris <link> dan aplikasi
+   kembali persis seperti semula.
+   ============================================================
+
+   MASALAH YANG DIPERBAIKI — hasil pengukuran, bukan selera:
+
+   1. HURUF TERLALU KECIL
+      Diukur di tagihan.html dan pelanggan.html: 77-78% dari
+      seluruh teks berukuran DI BAWAH 14px, dengan banyak
+      label di 9-10px. Untuk aplikasi yang dipakai seharian,
+      itu melelahkan mata.
+
+   2. KONTRAS DI BAWAH STANDAR
+      --text-3 (#9E9891) hanya 2.86:1 terhadap latar putih.
+      Standar aksesibilitas (WCAG AA) meminta 4.5:1 untuk teks
+      biasa. Warna itu dipakai untuk label, satuan, kota
+      pelanggan, jumlah nota — justru keterangan yang sering
+      perlu dibaca sekilas.
+
+      Sekarang:
+        --text    #1A1714   ~16:1    judul & angka utama
+        --text-2  #57514B   ~7.8:1   teks pendukung
+        --text-3  #736C66   ~5.2:1   label & keterangan
+      Ketiganya lulus 4.5:1 di atas putih MAUPUN di atas
+      latar krem halaman (#F5F2ED).
+
+   3. ANGKA TIDAK SEJAJAR
+      Angka rupiah memakai lebar huruf biasa, jadi digit tidak
+      lurus antar baris dan sulit dibandingkan sekilas.
+      Sekarang semua angka memakai tabular-nums.
+   ============================================================ */
+
+/* ══════════════════════════════════════════════════════════
+   1. TOKEN — memperbaiki kontras di seluruh aplikasi sekaligus
+   ══════════════════════════════════════════════════════════
+   Halaman memakai var(--text-2) / var(--text-3) di mana-mana,
+   jadi mengganti nilainya di sini memperbaiki SEMUA halaman
+   tanpa menyentuh satu pun berkas halaman. */
+:root {
+  --text-2: #57514B;      /* was #6B6560 */
+  --text-3: #736C66;      /* was #9E9891 — gagal kontras */
+
+  /* Dipakai hanya oleh berkas ini */
+  --mk-line:      #E3DED6;   /* garis pemisah halus */
+  --mk-line-soft: #EFEAE3;
+  --mk-shadow:    0 1px 2px rgba(26,23,20,.04), 0 1px 3px rgba(26,23,20,.06);
+  --mk-shadow-lg: 0 4px 16px rgba(26,23,20,.08), 0 1px 3px rgba(26,23,20,.06);
+  --mk-focus:     0 0 0 3px rgba(196,80,26,.18);
+}
+
+/* ══════════════════════════════════════════════════════════
+   2. DASAR
+   ══════════════════════════════════════════════════════════ */
+body {
+  font-size: 15px;                 /* dulu 13-14px */
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Angka rupiah sejajar antar baris. Ini perubahan kecil yang
+   paling terasa saat membandingkan kolom uang. */
+.mono, .num, .val, .sum-val, .sc-val, .stat-val, .td-num,
+.nota-total-val, .kredit-amount, .info-val, .total-box,
+input[type=number], .tag-table td, table td, table th {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ══════════════════════════════════════════════════════════
+   3. LABEL — yang paling banyak berubah
+   ══════════════════════════════════════════════════════════
+   Label mono huruf-besar dulu 9-10px. Dinaikkan ke 11.5px
+   dengan jarak huruf sedikit lebih lebar: tetap terbaca
+   sebagai "label", tapi sekarang benar-benar terbaca. */
+.section-lbl, .col-lbl, .nav-label, .sum-lbl, .sc-lbl,
+.stat-lbl, .info-lbl, .lbl, .nt-lbl, .nd-lbl, .th-sub,
+.nota-client-lbl, .nota-date-lbl, .nota-items-lbl,
+.kredit-sub, .kredit-from, .card-header, .group-name {
+  font-size: 11.5px !important;
+  letter-spacing: .07em;
+  color: var(--text-3);
+}
+
+/* Judul kartu sedikit lebih tegas daripada label biasa */
+.card-header, .modal-hd, .sheet-hd-title {
+  font-size: 12.5px !important;
+  letter-spacing: .08em;
+  color: var(--text) !important;
+  font-weight: 600;
+}
+
+/* Keterangan sekunder di kanan judul kartu ("belum dipilih",
+   "opsional — bisa diisi nanti") — jangan ikut membesar */
+.card-header .muted, .card-header .meta { font-weight: 400; }
+
+/* ══════════════════════════════════════════════════════════
+   4. NILAI & ANGKA
+   ══════════════════════════════════════════════════════════ */
+.val, .info-val, .sum-val, .nd-val, .nt-sv {
+  font-size: 15px;
+  color: var(--text);
+  font-weight: 500;
+}
+.stat-val, .sc-val { font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+.stat-sub, .sc-sub { font-size: 12px; color: var(--text-3); }
+
+/* Kotak total hitam — ini angka terpenting di halaman tagihan */
+.total-box { font-size: 15px; }
+.total-box .sum-val, .total-box strong { font-size: 21px; font-weight: 600; }
+
+/* ══════════════════════════════════════════════════════════
+   5. KARTU
+   ══════════════════════════════════════════════════════════ */
+.card, .modal, .kredit-section {
+  border-color: var(--mk-line);
+  box-shadow: var(--mk-shadow);
+}
+.card-header, .card-hd {
+  border-bottom: 1px solid var(--mk-line-soft);
+}
+
+/* ══════════════════════════════════════════════════════════
+   6. ISIAN (input, select, textarea)
+   ══════════════════════════════════════════════════════════
+   Dulu 13px dengan garis tipis. Dinaikkan supaya nyaman
+   diketik dan jelas mana yang sedang aktif. */
+input[type=text], input[type=number], input[type=date],
+input[type=password], input[type=search], select, textarea, .sel {
+  font-size: 15px;
+  color: var(--text);
+  border-color: var(--mk-line);
+  border-radius: 8px;
+}
+input::placeholder, textarea::placeholder { color: var(--text-3); opacity: 1; }
+
+input:focus, select:focus, textarea:focus, .sel:focus {
+  border-color: var(--accent) !important;
+  box-shadow: var(--mk-focus) !important;
+  outline: none;
+}
+
+/* Bidang wajib — tanda bintang jangan sampai hilang */
+.req { color: var(--accent); font-weight: 700; }
+
+/* ══════════════════════════════════════════════════════════
+   7. TOMBOL
+   ══════════════════════════════════════════════════════════ */
+.btn, button.btn, .btn-primary, .btn-ghost, .btn-sm, .add-btn {
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: background-color .12s ease, border-color .12s ease,
+              box-shadow .12s ease, transform .06s ease;
+}
+.btn:active, .btn-primary:active { transform: translateY(1px); }
+.btn:focus-visible, button:focus-visible, a:focus-visible {
+  outline: none;
+  box-shadow: var(--mk-focus);
+}
+.btn-sm { font-size: 13px; }
+
+/* Tombol nonaktif harus terlihat jelas nonaktif */
+.btn:disabled, .btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* ══════════════════════════════════════════════════════════
+   8. TABEL (layar besar)
+   ══════════════════════════════════════════════════════════ */
+table { font-size: 14px; }
+
+table thead th {
+  font-size: 11.5px;
+  letter-spacing: .07em;
+  color: var(--text-3);
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--mk-line);
+}
+
+table tbody td { padding-top: 11px; padding-bottom: 11px; }
+
+/* Baris berselang-seling + sorotan saat disentuh kursor:
+   membantu mata mengikuti satu baris sampai ke kolom kanan */
+@media (min-width: 640px) {
+  table tbody tr:nth-child(even) { background: rgba(26,23,20,.018); }
+  table tbody tr:hover { background: var(--accent-bg); }
+}
+
+/* Kolom angka rata kanan — hanya berlaku di sel yang memang
+   ditandai sebagai angka, jadi tidak mengubah kolom teks */
+.td-num, td.num { text-align: right; }
+
+/* ══════════════════════════════════════════════════════════
+   9. LENCANA STATUS
+   ══════════════════════════════════════════════════════════ */
+.sbadge, .status-badge, .plg-badge, .nota-group-badge,
+.override-badge, .group-count, .tab-count {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  border-radius: 999px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   10. BILAH ATAS & TAB
+   ══════════════════════════════════════════════════════════ */
+.topbar-title { font-size: 16px; font-weight: 600; letter-spacing: -.005em; }
+.topbar { border-bottom: 1px solid var(--mk-line); }
+
+.page-tab, .tab { font-size: 14px; font-weight: 500; }
+.page-tab.active, .tab.active { font-weight: 600; }
+
+/* ══════════════════════════════════════════════════════════
+   11. SIDEBAR
+   ══════════════════════════════════════════════════════════ */
+.nav-item { font-size: 14.5px; }
+.nav-label { font-size: 10.5px !important; color: rgba(255,255,255,.42); }
+.user-name { font-size: 13px; }
+/* Dulu 35% putih — terlalu redup bahkan di latar gelap */
+.user-role { font-size: 11px; color: rgba(255,255,255,.62) !important; }
+.sidebar-date { font-size: 11.5px; }
+
+/* ══════════════════════════════════════════════════════════
+   12. KEADAAN KOSONG
+   ══════════════════════════════════════════════════════════
+   "Pilih pelanggan untuk melihat detail" dsb. Dulu abu muda
+   dan nyaris tidak terbaca. */
+.empty, .detail-empty, .nota-empty-state, .tag-empty {
+  font-size: 15px;
+  color: var(--text-3);
+}
+
+/* ══════════════════════════════════════════════════════════
+   13. HALAMAN PELANGGAN
+   ══════════════════════════════════════════════════════════ */
+
+/* Baris grup: dijadikan jelas bahwa ini bisa ditekan */
+.group-header {
+  min-height: 48px;
+  border-bottom: 1px solid var(--mk-line-soft);
+  cursor: pointer;
+}
+.group-header:hover { background: var(--surface2); }
+.group-name  { font-size: 12.5px !important; color: var(--text) !important; font-weight: 700; }
+.group-count { background: var(--surface2); color: var(--text-2); }
+
+/* Baris pelanggan — nama harus menonjol, kota sebagai pendukung */
+.plg-item {
+  min-height: 56px;
+  border-bottom: 1px solid var(--mk-line-soft);
+}
+.plg-item:hover { background: var(--accent-bg); }
+.plg-name { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.35; }
+.plg-city { font-size: 12.5px; color: var(--text-3); }
+
+/* Angka piutang: ini yang dicari orang saat membuka halaman ini,
+   jadi dibuat rata kanan, tebal, dan tidak pernah terpotong */
+.plg-badge { font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+
+.stat-item { padding: 12px 14px; }
+
+/* ══════════════════════════════════════════════════════════
+   14. HALAMAN TAGIHAN
+   ══════════════════════════════════════════════════════════ */
+
+/* Kartu nota yang dipilih saat membuat tagihan */
+.nota-card {
+  border-color: var(--mk-line);
+  border-radius: 10px;
+  transition: border-color .12s ease, background-color .12s ease;
+}
+.nota-card:hover { border-color: var(--text-3); }
+.nota-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.nota-number    { font-size: 15px; font-weight: 700; }
+.nota-total-val { font-size: 15px; font-weight: 600; color: var(--text); }
+
+.kredit-card.selected {
+  border-color: var(--green);
+  box-shadow: inset 0 0 0 1px var(--green);
+}
+.kredit-amount { font-size: 15px; font-weight: 600; }
+
+/* Kotak centang cukup besar untuk jari, bukan hanya kursor */
+.nota-chk, .kredit-chk, input[type=checkbox] { width: 19px; height: 19px; accent-color: var(--accent); }
+
+/* Ringkasan di kanan — pasangan label/nilai harus mudah dibaca
+   berpasangan, jadi diberi jarak dan garis yang lebih tenang */
+.sum-row { padding: 10px 0; border-bottom: 1px solid var(--mk-line-soft); }
+.sum-lbl { color: var(--text-3); }
+.sum-val { font-weight: 600; }
+
+/* Warna makna tetap, hanya dipastikan cukup gelap untuk terbaca */
+.sum-val.green, .s-lunas, .sb-lunas { color: var(--green); }
+.sum-val.red                        { color: #B3300F; }
+.sum-val.blue, .s-kredit, .sb-kredit{ color: var(--blue); }
+.s-pending, .sb-pending             { color: var(--amber); }
+
+/* ══════════════════════════════════════════════════════════
+   15. MODAL / LEMBAR BAWAH
+   ══════════════════════════════════════════════════════════ */
+.modal-hd { border-bottom: 1px solid var(--mk-line); }
+.modal-ft { border-top: 1px solid var(--mk-line); }
+.modal-x  { font-size: 20px; color: var(--text-3); border-radius: 8px; }
+.modal-x:hover { background: var(--surface2); color: var(--text); }
+.modal { box-shadow: var(--mk-shadow-lg); }
+
+/* ══════════════════════════════════════════════════════════
+   16. LAYAR BESAR — manfaatkan lebarnya
+   ══════════════════════════════════════════════════════════
+   Di layar 1440px, isi halaman berhenti jauh sebelum tepi dan
+   sisanya kosong. Dilebarkan tapi tetap dibatasi supaya baris
+   teks tidak jadi terlalu panjang untuk dibaca. */
+@media (min-width: 1280px) {
+  .content, .d-content, .page { max-width: 1400px; }
+  table { font-size: 14.5px; }
+
+  /* Kepala tabel ikut menempel saat daftar panjang digulung */
+  .tag-table thead th, .hk-table thead th {
+    position: sticky; top: 0; z-index: 2;
+    background: var(--surface);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   17. HP  <640px
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 639px) {
+
+  body { font-size: 15px; }
+
+  /* Label di HP boleh sedikit lebih kecil, tapi tidak di bawah 11px */
+  .section-lbl, .col-lbl, .sum-lbl, .info-lbl, .lbl,
+  .nota-client-lbl, .nota-date-lbl, .nota-items-lbl {
+    font-size: 11px !important;
+  }
+
+  /* ── PELANGGAN ────────────────────────────────────────── */
+  .plg-item {
+    min-height: 60px;
+    padding-top: 11px !important;
+    padding-bottom: 11px !important;
+    gap: 10px;
+  }
+  .plg-name  { font-size: 15.5px; font-weight: 600; }
+  .plg-city  { font-size: 12.5px; }
+  .plg-badge { font-size: 13px; padding: 4px 9px; }
+
+  .group-header { min-height: 52px; }
+  .group-name   { font-size: 13px !important; }
+
+  /* ── TAGIHAN ────────────────────────────────────────────
+     Kartu nota dipakai sambil berdiri di gudang atau di jalan,
+     jadi nomor nota dan jumlah dibuat paling menonjol. */
+  .nota-card      { padding: 13px 12px !important; }
+  .nota-number    { font-size: 16px; }
+  .nota-total-val { font-size: 16px; }
+  .nota-card + .nota-card { margin-top: 9px; }
+
+  /* Ringkasan di HP: label kiri, angka kanan, keduanya terbaca */
+  .sum-row { padding: 11px 0; }
+  .sum-val { font-size: 15.5px; }
+  .total-box .sum-val, .total-box strong { font-size: 22px; }
+
+  /* Angka ringkasan di kartu statistik */
+  .stat-val, .sc-val { font-size: 20px; }
+
+  /* Tabel yang berubah jadi kartu — beri nafas & pertegas judul */
+  table.mk-cards tr {
+    padding: 13px 14px;
+    box-shadow: var(--mk-shadow);
+    border-color: var(--mk-line);
+  }
+  table.mk-cards td        { font-size: 14.5px; padding: 6px 0; }
+  table.mk-cards td::before{ font-size: 11px; color: var(--text-3); }
+  table.mk-cards td.mk-title { font-size: 16px; font-weight: 600; }
+
+  /* Jarak aman supaya tombol terakhir tidak tertutup banner jaringan */
+  .content, .d-content, .page { padding-bottom: 88px !important; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   18. CETAK — jangan ikut membesar di kertas
+   ══════════════════════════════════════════════════════════ */
+@media print {
+  body { font-size: 12px; }
+  .card { box-shadow: none; }
+  table tbody tr:nth-child(even) { background: none; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   19. BATAS BAWAH UKURAN HURUF
+   ══════════════════════════════════════════════════════════
+   Daftar pemilih di bawah ini bukan tebakan — diambil dengan
+   menelusuri halaman yang sudah jadi dan mencatat SETIAP
+   elemen berteks yang tampil di bawah 11.5px.
+
+   Yang paling penting ada di sini: judul kartu (<h2> di dalam
+   .card-header) dulu 11px, dan label isian (<label>) dulu 10px.
+   Keduanya justru teks yang paling sering dibaca orang saat
+   mengisi form.
+
+   Patokannya sederhana: tidak ada teks di bawah 11.5px, dan
+   apa pun yang dibaca sebagai kalimat minimal 12px.          */
+
+/* Judul kartu & keterangannya */
+.card-header h2, .card-hd h2, .modal-hd h2 {
+  font-size: 13px !important;
+  letter-spacing: .06em;
+  color: var(--text) !important;
+}
+.card-header .meta, .card-hd .meta, .modal-hd .meta {
+  font-size: 12px !important;
+  color: var(--text-3);
+}
+
+/* Label isian — dulu 10px */
+label, .field label, .ef-lbl, .flbl, .ef-sec, .ibt,
+.ci-strip-k, .sg-hd span, .sr-head span, .prod-col-hd span,
+.si span, .rp-w span, .total-box .t-lbl, .sum-total .sum-lbl {
+  font-size: 12px !important;
+  letter-spacing: .05em;
+}
+
+/* Kepala tabel */
+th, .tag-table th, .satuan-table th, .rw-table th,
+.prod-table th, .hk-table th {
+  font-size: 11.5px !important;
+  letter-spacing: .06em;
+}
+
+/* Keterangan kecil yang masih perlu terbaca */
+.sub, .sidebar-date, .stat-lbl, .stat-sub, .sc-lbl, .sc-sub,
+.plg-nota, .prod-cat, .std-price, .unit-tag, .sr-preview,
+.tap-hint, .tab-count, .meta {
+  font-size: 11.5px !important;
+}
+.nav-label { font-size: 11px !important; }
+
+/* Tombol pintasan tanggal ("Hari ini", "Kemarin") */
+.qbtn, .tab { font-size: 13px !important; }
+
+/* Lencana piutang di daftar pelanggan — dulu 9px, terkecil
+   di seluruh aplikasi, padahal isinya angka uang. */
+.plg-badge, .plg-badge.kredit { font-size: 12.5px !important; font-weight: 700; }
+
+/* Lencana angka di atas latar berwarna butuh warna lebih gelap
+   supaya tetap lulus kontras (diukur: 4.42:1 sebelum ini). */
+.tab-count, .group-count { color: var(--text-2) !important; }
+
+/* Label lingkungan di kaki sidebar: oranye di atas latar gelap
+   hanya 3.83:1. Dicerahkan agar terbaca tanpa kehilangan
+   fungsinya sebagai peringatan. */
+#d-env-label { color: #F0905C !important; font-size: 11.5px !important; }
+
+/* ══════════════════════════════════════════════════════════
+   20. TEKS KECIL YANG DITULIS LANGSUNG DI ATRIBUT style=""
+   ══════════════════════════════════════════════════════════
+   Sebagian label ditulis sebagai style="font-size:10px" pada
+   elemennya sendiri, bukan lewat class. Gaya sebaris seperti
+   itu mengalahkan aturan CSS biasa, jadi satu-satunya cara
+   menaikkannya tanpa menyunting berkas halaman adalah memilih
+   berdasarkan isi atribut style-nya.
+
+   Sengaja hanya 9px dan 10px yang dinaikkan. 11px ke atas
+   dibiarkan, termasuk inisial pada avatar bulat yang memang
+   harus muat di lingkaran kecil.                              */
+[style*="font-size:9px"],  [style*="font-size: 9px"],
+[style*="font-size:10px"], [style*="font-size: 10px"] {
+  font-size: 12px !important;
+}
+
+/* Kepala kolom baris pembayaran di halaman tagihan */
+.bayar-head span, .nota-toolbar span, .kredit-header span {
+  font-size: 12px !important;
+  letter-spacing: .05em;
+}
+
+/* Awalan "Rp" di dalam kotak isian angka */
+.rp-w span { font-size: 12px !important; }
+
+/* Peran user di sidebar gelap */
+.user-role { font-size: 11.5px !important; }
+
+/* ══════════════════════════════════════════════════════════
+   21. DAFTAR DI LAYAR HP — perbaikan kartu tabel
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 639px) {
+
+  /* ── Sel judul kartu ────────────────────────────────────
+     mk-responsive.css membuat setiap <td> jadi flex baris
+     (label kiri, nilai kanan). Itu benar untuk sel biasa,
+     tapi SALAH untuk sel pertama: di halaman tagihan sel itu
+     berisi tiga <div> bertumpuk (no. tagihan, nama pelanggan,
+     tanggal). Karena induknya flex, ketiganya berjajar ke
+     samping dan semuanya jadi terpotong-potong di 390px.
+
+     Dikembalikan ke block supaya isinya menumpuk seperti
+     yang dimaksud penulisnya.                               */
+  table.mk-cards td.mk-title {
+    display: block;
+    text-align: left;
+    line-height: 1.4;
+  }
+  table.mk-cards td.mk-title > div { margin-bottom: 2px; }
+  table.mk-cards td.mk-title > div:first-child { font-size: 15px; font-weight: 700; }
+
+  /* Nama pelanggan lebih enak dibaca dengan huruf biasa;
+     huruf mono lebar dan cepat memaksa pemenggalan baris. */
+  table.mk-cards td.mk-title > div:nth-child(2) {
+    font-family: var(--sans, 'DM Sans', sans-serif) !important;
+    font-size: 14.5px !important;
+  }
+
+  /* ── Bilah penyaring ────────────────────────────────────
+     Tiga kotak berjajar di 390px membuat semuanya terpotong
+     ("Cari no. ta...", "Filter pela..."). Ditumpuk saja. */
+  .filter-bar, .nota-toolbar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .filter-bar > *, .nota-toolbar > * { width: 100% !important; max-width: 100% !important; }
+  .filter-bar .sel, .filter-bar input { min-width: 0 !important; }
+
+  /* ── Kerapatan kartu ────────────────────────────────────
+     Sebelumnya hanya ~4 tagihan muat di satu layar. */
+  table.mk-cards tr  { padding: 12px 13px; margin-bottom: 8px; }
+  table.mk-cards td  { padding: 4px 0; }
+  table.mk-cards td.mk-title {
+    padding-bottom: 9px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--mk-line-soft);
+  }
+
+  /* Lencana status tetap terbaca tanpa memakan satu baris penuh */
+  table.mk-cards td .sbadge,
+  table.mk-cards td .status-badge { font-size: 12px; padding: 3px 10px; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   22. PERBAIKAN: KOLOM "SISA / KREDIT" HILANG DI HP
+   ══════════════════════════════════════════════════════════
+   Ini bukan sekadar penataan ulang — ini menambal cacat nyata.
+
+   tagihan.html punya aturan HP sendiri yang ditulis untuk tabel
+   berisi ENAM kolom:
+
+     .tag-table td:nth-child(3){display:none;}  / * hide date col * /
+
+   Tabelnya kemudian dipadatkan jadi EMPAT kolom
+   (No.Tagihan·Pelanggan | Tagihan | Sisa/Kredit | Status),
+   tetapi aturan itu tidak ikut diperbarui. Akibatnya kolom
+   ketiga yang disembunyikan bukan lagi tanggal, melainkan
+   SISA / KREDIT.
+
+   Artinya, selama ini di HP daftar tagihan tidak pernah
+   menampilkan sisa tagihan sama sekali — justru angka yang
+   paling dicari saat menagih.
+
+   Aturan-aturan nth-child lain di bawah ini juga menyasar
+   kolom ke-5 dan ke-6 yang sudah tidak ada. Semuanya
+   dinetralkan di sini supaya tampilan kartu dari
+   mk-responsive.css bisa bekerja utuh.                        */
+@media (max-width: 639px) {
+  .tag-table.mk-cards td:nth-child(1),
+  .tag-table.mk-cards td:nth-child(2),
+  .tag-table.mk-cards td:nth-child(3),
+  .tag-table.mk-cards td:nth-child(4),
+  .tag-table.mk-cards td:nth-child(5),
+  .tag-table.mk-cards td:nth-child(6) {
+    display: flex !important;
+    width: auto !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    flex: initial !important;
+    font-size: 14.5px;
+  }
+  /* Sel pertama tetap blok — isinya tiga baris bertumpuk */
+  .tag-table.mk-cards td.mk-title,
+  .tag-table.mk-cards td:nth-child(1) {
+    display: block !important;
+    width: 100% !important;
+  }
+  /* Sel yang memang kosong tetap disembunyikan */
+  .tag-table.mk-cards td.mk-empty { display: none !important; }
+
+  /* Sisa tagihan adalah angka yang dicari duluan — ditebalkan */
+  .tag-table.mk-cards td:nth-child(3) { font-weight: 700; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   23. PERAPIHAN LAYAR BESAR
+   ══════════════════════════════════════════════════════════ */
+
+/* Judul kartu jangan terpotong jadi dua baris setelah dibesarkan.
+   Di kolom sempit (300px) "SEMUA PELANGGAN" sempat terbelah. */
+.card-header, .card-hd { gap: 12px; flex-wrap: wrap; }
+.card-header h2, .card-hd h2 { white-space: nowrap; }
+.card-header .meta, .card-hd .meta { white-space: nowrap; text-align: right; }
+
+/* ── Halaman pelanggan: pakai tinggi layar ──────────────────
+   .content memakai align-items:start, sehingga kedua kolom
+   hanya setinggi isinya. Di layar 1440px hasilnya daftar
+   pelanggan berhenti di sepertiga atas dan sisanya kosong.
+
+   Sekarang kedua kolom mengisi tinggi layar, dan daftar
+   panjang digulung DI DALAM panelnya sendiri — jadi panel
+   detail di kanan tidak ikut bergeser saat mencari nama.
+
+   :has() dipakai supaya aturan ini hanya mengenai halaman
+   yang memang punya daftar pelanggan; halaman lain yang juga
+   memakai .content tidak tersentuh. Peramban lama yang belum
+   mengenal :has() akan mengabaikannya begitu saja.           */
+@media (min-width: 1024px) {
+  .content:has(.group-header) {
+    align-items: stretch;
+    min-height: calc(100vh - var(--header-h, 52px) - 62px);
+  }
+  .content:has(.group-header) > .card:first-child {
+    max-height: calc(100vh - var(--header-h, 52px) - 62px);
+    overflow-y: auto;
+  }
+  /* Judul "SEMUA PELANGGAN" tetap terlihat saat daftar digulung */
+  .content:has(.group-header) > .card:first-child > .card-header {
+    position: sticky; top: 0; z-index: 3;
+    background: var(--surface);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   24. AVATAR DI DAFTAR PELANGGAN
+   ══════════════════════════════════════════════════════════
+   Avatar bulat itu berisi dua huruf pertama nama pelanggan.
+   Karena hampir semua pelanggan bernama "TOKO ...", isinya
+   "TO" untuk semua baris — tidak membedakan satu pun, tetapi
+   memakan sekitar 46px dari kolom daftar yang lebarnya hanya
+   300px, sehingga nama jadi terpotong ke baris kedua.
+
+   Ruang itu dikembalikan ke nama dan angka piutang.
+
+   Kalau suatu saat ingin dimunculkan lagi, cukup hapus blok
+   ini — tidak ada yang lain bergantung padanya.              */
+.plg-avatar { display: none !important; }
