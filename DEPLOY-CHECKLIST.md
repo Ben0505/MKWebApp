@@ -225,6 +225,54 @@ number is stale, tell me — it means my dependency map has a gap.
 
 ---
 
+## Trap: changing your workers.dev subdomain
+
+The `benny-tandio` part of `bukumk-test.benny-tandio.workers.dev` is the
+**account-wide** workers.dev subdomain, shared by every Worker in the account.
+You can rename it at **Workers & Pages → Your subdomain → Change**.
+
+**But renaming it breaks every Worker until you redeploy** — under the old
+name *and* the new one. This is documented Cloudflare behaviour, not a fault
+in this project. Recovering takes three things, in order:
+
+1. **Redeploy.** Push any commit to `main`, or in the Cloudflare dashboard go
+   to **Deployments** and retry the latest build. Nothing in the app needs to
+   change; the Worker simply has to be re-registered against the new name.
+
+2. **Re-enable the workers.dev route.** A subdomain change can leave it
+   switched off, exactly like on first deploy — the dashboard shows
+   *"No URLs enabled"* and `workers.dev  Disabled`. Check
+   **Settings → Domains & Routes**.
+
+   Because `wrangler.jsonc` sets `"workers_dev": true`, a redeploy should turn
+   this back on by itself. If it has not, switch it on by hand.
+
+3. **Wait for DNS.** The new hostname needs to propagate. Usually 30–60
+   seconds, but it can be considerably longer, and while it is pending the
+   browser will say the site cannot be found (NXDOMAIN) rather than showing
+   any Cloudflare error page.
+
+### Telling the three apart
+
+The error your browser shows says which one you are on:
+
+| What you see | What it means |
+|---|---|
+| *"Server not found" / "site can't be reached"* (NXDOMAIN) | DNS not propagated yet, or the route is off. Wait, then check step 2 |
+| Cloudflare error page, e.g. **error 1101 / 522** | DNS is fine, the Worker is being reached but failing. Check the build log |
+| **404** from Cloudflare | Route is live but no Worker is attached — redeploy (step 1) |
+| Login page loads | Working. Anything wrong after this is the app or the GAS URL, not Cloudflare |
+
+If it is still failing after a redeploy and ten minutes, the fastest way out
+is to revert to the old subdomain rather than keep waiting — you know that one
+worked.
+
+**Do not rename the subdomain again once staff have the link.** It is
+account-wide, it breaks every URL instantly, and Cloudflare may not let you
+change it a second time without going through support.
+
+---
+
 ## If something goes wrong
 
 **Roll back the frontend:** Cloudflare → your project → **Deployments** →
