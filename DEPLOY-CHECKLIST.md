@@ -10,10 +10,9 @@ most of it waiting on Google.
 
 ## Before you start — the three things that matter
 
-1. **The code is on branch `claude/office-webapp-c7x6rm`, not `main`.**
-   `main` contains an empty README and nothing else. If you let Cloudflare
-   deploy `main` you will get a blank site and think something broke.
-   You will set the branch explicitly in Step 3.
+1. **Everything is on `main`.** You do not need to pick a branch anywhere.
+   Cloudflare defaults to `main`, which is now the deployable branch, so
+   leave every branch setting alone. All future changes go to `main` too.
 
 2. **Cloudflare's output directory must be `public`.**
    `Code.gs` and these guides live at the repo root, *outside* `public/`,
@@ -85,7 +84,7 @@ you replace it.
 Easiest way, straight in the browser:
 
 1. Go to
-   `https://github.com/Ben0505/MKWebApp/blob/claude/office-webapp-c7x6rm/public/mk-config.js`
+   `https://github.com/Ben0505/MKWebApp/blob/main/public/mk-config.js`
 2. Click the **pencil (Edit)** icon.
 3. Change this line:
    ```js
@@ -96,8 +95,7 @@ Easiest way, straight in the browser:
    GAS: 'https://script.google.com/macros/s/AKfycb..../exec',
    ```
 4. Keep the quotes and the trailing comma.
-5. Scroll down → **Commit changes** → commit directly to
-   `claude/office-webapp-c7x6rm`.
+5. Scroll down → **Commit changes** → commit directly to `main`.
 
 While you are in this file, confirm:
 ```js
@@ -126,21 +124,28 @@ the test site with the real one. Leave it as is.
    | Field | Value |
    |---|---|
    | Project name | `bukumk-test` (becomes `bukumk-test.pages.dev`) |
-   | Production branch | **`claude/office-webapp-c7x6rm`** ← not `main` |
+   | Production branch | `main` — already correct, leave it |
    | Framework preset | **None** |
    | Build command | **leave empty** |
    | Build output directory | **`public`** |
 
-   Branch and output directory are the two that matter. Get those wrong and
-   you deploy either nothing or your backend source.
+   **Build output directory is the one that matters.** If you leave it blank,
+   Cloudflare serves the repository root and `Code.gs` becomes downloadable
+   at `/Code.gs`. Set it to `public`.
+
+   > If you ever do need to change the production branch, it is not on this
+   > screen after the project exists. It lives at
+   > **Settings → Builds & deployments → Configure Production deployments**
+   > (newer accounts: **Settings → Builds → Branch control**). Saving it does
+   > not redeploy by itself — trigger a new deployment afterwards.
 
 6. **Save and Deploy.** It takes under a minute — there is no build step,
    Cloudflare just copies the files.
 
 7. You get a URL like `https://bukumk-test.pages.dev`.
 
-From now on, every time we push a change to that branch, Cloudflare redeploys
-automatically. You will not need to touch this screen again.
+From now on, every push to `main` redeploys automatically. You will not need
+to touch this screen again.
 
 ---
 
