@@ -200,7 +200,15 @@
   /** Ambil satu action sendirian (fallback & kasus permintaan tunggal). */
   async function fetchSingle(action, url) {
     try {
-      const d = await netGet(`${url}?action=${action}`);
+      let d = await netGet(`${url}?action=${action}`);
+      // Backend lama menjawab action tak dikenal dengan pesan status biasa
+      // (tanpa field success). Kalau ada padanan lama, pakai itu.
+      if ((!d || !d.success) && ACTION_FALLBACK[action]) {
+        try {
+          const alt = await netGet(`${url}?action=${ACTION_FALLBACK[action]}`);
+          if (alt && alt.success) d = alt;
+        } catch (e) {}
+      }
       setNetState(true);
       absorb(action, d);
       settle(action, d);
@@ -210,6 +218,27 @@
       settle(action, null, e);
       throw e;
     }
+  }
+
+  /* Padanan lama untuk action yang baru ada di Code.gs versi terbaru.
+     Kalau backend belum di-deploy ulang, action baru tidak dikenal dan
+     DIBUANG diam-diam dari hasil batch. Tanpa jaring ini, satu action
+     yang hilang menolak Promise-nya, Promise.all di halaman ikut gagal,
+     dan SELURUH halaman kosong — bukan hanya bagian yang hilang.
+
+     getAllNotasLite hanyalah getAllNotas tanpa rincian barang, jadi yang
+     lama selalu bisa dipakai sebagai gantinya. */
+  const ACTION_FALLBACK = { getAllNotasLite: 'getAllNotas' };
+
+  async function resolveMissing(action, url) {
+    const alt = ACTION_FALLBACK[action];
+    if (alt) {
+      try {
+        const d = await netGet(`${url}?action=${alt}`);
+        if (d && d.success) { setNetState(true); absorb(action, d); settle(action, d); return; }
+      } catch (e) { /* jatuh ke percobaan satuan di bawah */ }
+    }
+    await fetchSingle(action, url).catch(() => {});
   }
 
   async function flushBatch() {
@@ -242,12 +271,14 @@
     }
 
     setNetState(true);
+    const missing = [];
     actions.forEach(a => {
       const d = res.results[a];
-      if (d === undefined) { settle(a, null, new Error('batch: ' + a + ' tidak dibalas')); return; }
+      if (d === undefined) { missing.push(a); return; }   // backend tidak kenal action ini
       absorb(a, d);
       settle(a, d);
     });
+    if (missing.length) await Promise.all(missing.map(a => resolveMissing(a, url)));
   }
 
   /** Minta data segar dari server. Otomatis digabung dengan permintaan
