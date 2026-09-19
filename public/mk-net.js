@@ -501,61 +501,81 @@
     const s = document.createElement('style');
     s.id = 'mk-net-css';
     s.textContent = `
+    /* Warna keadaan dipegang tiga variabel, lalu dipakai ulang oleh
+       latar, garis, titik, dan tombol. Menambah keadaan baru cukup
+       mengganti ketiganya — tidak perlu menulis ulang setiap bagian.
+
+         --s    warna utama (teks, titik, isi tombol)
+         --sbg  latar bilah
+         --sbd  garis atas
+
+       Semua pasangan sudah diperiksa terhadap standar kontras WCAG AA
+       (minimal 4.5:1), termasuk teks putih di atas tombol berwarna:
+         hijau  5.89:1   kuning 5.47:1   merah 5.49:1
+         tombol 6.50:1          5.79:1          6.28:1            */
     #mk-net-bar{
+      --s:#1A6B45; --sbg:#EDF6F1; --sbd:#C9E3D6;     /* baik */
       position:fixed; left:0; right:0; bottom:0; z-index:10000;
       display:flex; align-items:center; gap:10px;
-      height:30px; padding:0 12px;
+      height:34px; padding:0 10px 0 14px;
       padding-bottom:env(safe-area-inset-bottom);
       box-sizing:content-box;
-      background:var(--surface,#fff);
-      border-top:1px solid var(--border,#D9D4CC);
+      background:var(--sbg);
+      border-top:1px solid var(--sbd);
+      color:var(--s);
       font-family:var(--sans,'DM Sans',sans-serif);
-      font-size:12.5px; color:var(--text-2,#57514B);
+      font-size:13px; font-weight:500;
       user-select:none;
+      transition:background-color .2s ease, border-color .2s ease, color .2s ease;
     }
+    /* sedang mengambil data */
+    #mk-net-bar.busy{--s:#8B5C00; --sbg:#FEF8EC; --sbd:#EEDCB0;}
+    /* gagal / tidak ada sambungan */
+    #mk-net-bar.bad {--s:#B3300F; --sbg:#FDECEC; --sbd:#F2C7C7;}
+
     #mk-net-dot{
-      width:7px; height:7px; border-radius:50%; flex:0 0 auto;
-      background:var(--green,#1A6B45);
+      width:8px; height:8px; border-radius:50%; flex:0 0 auto;
+      background:var(--s);
+      box-shadow:0 0 0 3px color-mix(in srgb, var(--s) 18%, transparent);
     }
+    #mk-net-bar.busy #mk-net-dot{animation:mkPulse 1s ease-in-out infinite;}
+    @keyframes mkPulse{0%,100%{opacity:1}50%{opacity:.3}}
+
     #mk-net-txt{flex:1; min-width:0; white-space:nowrap;
       overflow:hidden; text-overflow:ellipsis;}
-    #mk-net-btn{
-      flex:0 0 auto; display:flex; align-items:center; gap:6px;
-      height:24px; padding:0 9px; border-radius:6px;
-      border:1px solid var(--border,#D9D4CC);
-      background:var(--surface,#fff); color:var(--text-2,#57514B);
-      font-family:inherit; font-size:12px; cursor:pointer;
-      transition:background-color .12s, border-color .12s, color .12s;
-    }
-    #mk-net-btn:hover{background:var(--surface2,#F0EDE8); color:var(--text,#1A1714);}
-    #mk-net-btn:active{transform:translateY(1px);}
-    #mk-net-btn:disabled{opacity:.45; cursor:default;}
-    #mk-net-btn .ic{display:inline-block; font-size:13px; line-height:1;}
 
-    /* Sedang mengambil data */
-    #mk-net-bar.busy #mk-net-dot{background:var(--blue,#185FA5);
-      animation:mkPulse 1s ease-in-out infinite;}
-    @keyframes mkPulse{0%,100%{opacity:1}50%{opacity:.25}}
+    /* Tombol sengaja dibuat mencolok: berisi warna penuh dengan teks
+       putih, bukan sekadar garis tepi, supaya jelas ini bisa ditekan. */
+    #mk-net-btn{
+      flex:0 0 auto; display:inline-flex; align-items:center; gap:6px;
+      height:26px; padding:0 12px; border-radius:999px;
+      border:none; background:var(--s); color:#fff;
+      font-family:inherit; font-size:12.5px; font-weight:600;
+      letter-spacing:.01em; cursor:pointer; white-space:nowrap;
+      box-shadow:0 1px 2px rgba(26,23,20,.18);
+      transition:filter .12s ease, transform .06s ease, box-shadow .12s ease;
+    }
+    #mk-net-btn:hover{filter:brightness(1.12); box-shadow:0 2px 6px rgba(26,23,20,.22);}
+    #mk-net-btn:active{transform:translateY(1px); box-shadow:0 1px 1px rgba(26,23,20,.2);}
+    #mk-net-btn:focus-visible{outline:2px solid var(--s); outline-offset:2px;}
+    #mk-net-btn:disabled{opacity:.55; cursor:default; box-shadow:none; filter:none;}
+    #mk-net-btn .ic{display:inline-block; font-size:13px; line-height:1;}
     #mk-net-bar.busy #mk-net-btn .ic{animation:mkSpin .9s linear infinite;}
     @keyframes mkSpin{to{transform:rotate(360deg)}}
 
-    /* Ada data baru yang belum ditampilkan — tombol ditonjolkan */
-    #mk-net-bar.fresh #mk-net-dot{background:var(--accent,#C4501A);}
+    /* Ada data baru: bilah tetap hijau karena datanya sendiri sehat —
+       yang perlu menarik perhatian adalah tombolnya. */
     #mk-net-bar.fresh #mk-net-btn{
-      border-color:var(--accent,#C4501A); color:var(--accent,#C4501A);
-      font-weight:600;}
-
-    /* Ada perubahan menunggu dikirim */
-    #mk-net-bar.warn{background:var(--amber-bg,#FEF8EC);
-      border-top-color:#E8D29A; color:var(--amber,#8B5C00);}
-    #mk-net-bar.warn #mk-net-dot{background:var(--amber,#8B5C00);}
-
-    /* Tidak ada sambungan */
-    #mk-net-bar.off{background:#FDECEC; border-top-color:#F0BDBD; color:#B3300F;}
-    #mk-net-bar.off #mk-net-dot{background:#B3300F;}
+      background:var(--accent,#C4501A);
+      animation:mkNudge 1.8s ease-in-out infinite;
+    }
+    @keyframes mkNudge{
+      0%,100%{box-shadow:0 1px 2px rgba(26,23,20,.18);}
+      50%    {box-shadow:0 0 0 4px rgba(196,80,26,.22);}
+    }
 
     #mk-net-toast{position:fixed;left:50%;transform:translateX(-50%);
-      bottom:46px; z-index:10002; background:var(--green,#1A6B45); color:#fff;
+      bottom:50px; z-index:10002; background:#1A6B45; color:#fff;
       border-radius:8px; padding:9px 16px;
       font-family:var(--sans,'DM Sans',sans-serif); font-size:13px;
       box-shadow:0 6px 22px rgba(0,0,0,.2); display:none;}
@@ -566,9 +586,20 @@
     @media (min-width:1024px){#mk-net-bar{left:var(--sb-full,210px);}}
     @media (min-width:640px) and (max-width:1023px){#mk-net-bar{left:var(--sb-icon,60px);}}
 
+    /* Di layar sempit, label tombol dipendekkan agar keterangan kiri
+       tetap terbaca utuh. */
+    @media (max-width:420px){
+      #mk-net-bar{font-size:12.5px; padding-left:12px;}
+      #mk-net-btn{padding:0 10px;}
+    }
+
+    @media (prefers-reduced-motion:reduce){
+      #mk-net-dot, #mk-net-btn, #mk-net-btn .ic{animation:none!important;}
+    }
+
     /* Baris ini tidak ikut tercetak, dan tidak boleh menutupi isi */
     @media print{#mk-net-bar,#mk-net-toast{display:none!important;}}
-    body{padding-bottom:calc(34px + env(safe-area-inset-bottom));}
+    body{padding-bottom:calc(38px + env(safe-area-inset-bottom));}
     `;
     document.head.appendChild(s);
   }
@@ -619,39 +650,59 @@
     const btn = document.getElementById('mk-net-btn');
     const lbl = document.getElementById('mk-net-btn-lbl');
     const n   = qRead().length;
+    const narrow = window.innerWidth < 420;
 
     bar.className = '';
     btn.disabled  = false;
 
     if (busyCount > 0) {
+      // KUNING — sedang berjalan
       bar.className = 'busy';
       txt.textContent = 'Mengambil data...';
       btn.disabled = true;
-      lbl.textContent = 'Memuat';
-    } else if (!navigator.onLine || !netOk) {
-      bar.className = 'off';
+      lbl.textContent = narrow ? '' : 'Memuat';
+
+    } else if (!navigator.onLine) {
+      // MERAH — tidak ada jaringan sama sekali
+      bar.className = 'bad';
       txt.textContent = n
         ? `Tidak ada sambungan — ${n} perubahan menunggu`
         : 'Tidak ada sambungan — menampilkan data tersimpan';
-      lbl.textContent = 'Coba lagi';
+      lbl.textContent = narrow ? '' : 'Coba lagi';
+
+    } else if (!netOk) {
+      // MERAH — ada jaringan, tapi server tidak menjawab.
+      // Dibedakan dari kasus di atas supaya jelas mana yang harus
+      // diperiksa: sinyal, atau deployment Apps Script-nya.
+      bar.className = 'bad';
+      txt.textContent = 'Gagal mengambil data dari server';
+      lbl.textContent = narrow ? '' : 'Coba lagi';
+
     } else if (n) {
-      bar.className = 'warn';
+      // KUNING — perubahan masih dalam perjalanan ke server
+      bar.className = 'busy';
       txt.textContent = `Mengirim ${n} perubahan tertunda...`;
-      lbl.textContent = 'Kirim ulang';
+      lbl.textContent = narrow ? '' : 'Kirim ulang';
+
     } else if (hasNew) {
+      // HIJAU dengan tombol menyala — datanya sehat, hanya ada versi
+      // yang lebih baru yang belum ditampilkan.
       bar.className = 'fresh';
       txt.textContent = 'Ada data baru dari server';
       lbl.textContent = 'Tampilkan';
+
     } else if (staleShown) {
-      bar.className = 'warn';
+      bar.className = 'busy';
       txt.textContent = 'Data mungkin belum terbaru';
-      lbl.textContent = 'Muat ulang';
+      lbl.textContent = narrow ? '' : 'Muat ulang';
       clearTimeout(renderBar._t);
       renderBar._t = setTimeout(() => { staleShown = false; renderBar(); }, 5000);
+
     } else {
+      // HIJAU — semuanya beres
       const s = sinceText(lastSync);
       txt.textContent = lastSync ? `Data terbaru${s ? ' · ' + s : ''}` : 'Data tersimpan';
-      lbl.textContent = 'Muat ulang';
+      lbl.textContent = narrow ? '' : 'Muat ulang';
     }
   }
 
