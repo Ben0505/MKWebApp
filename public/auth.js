@@ -433,7 +433,10 @@ const MK_CACHE = {
   TTL: {
     getPelanggan:      300000,  // 5 menit  — master data
     getProduk:         300000,  // 5 menit  — master data
-    getAllNotas:         30000,  // 30 detik — transaksional aktif
+    getAllNotas:        180000,  // 3 menit — payload terberat; 30 detik dulu
+                                //           membuat hampir tiap buka halaman
+                                //           mengambil ulang ratusan KB
+    getAllNotasLite:    180000,  // 3 menit — versi tanpa rincian barang
     getTodayNotas:      20000,  // 20 detik — berubah aktif
     getTagihan:         30000,  // 30 detik
     getKredit:          30000,  // 30 detik

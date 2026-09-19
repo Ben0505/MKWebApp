@@ -285,7 +285,7 @@
   // Dulu ini MENGHAPUS cache → tiap balik ke tab = fetch penuh (lemot di HP).
   // Sekarang cuma "menuakan" cache → data lama tampil instan, refresh di belakang.
   MK_CACHE.bustTransactional = function () {
-    ['getAllNotas', 'getTodayNotas', 'getTagihan', 'getKredit',
+    ['getAllNotas', 'getAllNotasLite', 'getTodayNotas', 'getTagihan', 'getKredit',
      'getLangsiran', 'getStock', 'getNotaBelumTagih'].forEach(a => {
       const o = readRaw(a);
       if (!o) return;
@@ -572,7 +572,7 @@
   const PAGE_NEEDS = {
     'input-penjualan.html': ['getPelanggan', 'getProduk', 'getTodayNotas'],
     'data-penjualan.html':  ['getAllNotas', 'getPelanggan', 'getProduk'],
-    'tagihan.html':         ['getPelanggan', 'getNotaBelumTagih', 'getTagihan', 'getKredit', 'getAllNotas'],
+    'tagihan.html':         ['getPelanggan', 'getNotaBelumTagih', 'getTagihan', 'getKredit', 'getAllNotasLite'],
     'pelanggan.html':       ['getPelanggan', 'getProduk', 'getTagihan', 'getKredit'],
     'produk.html':          ['getProduk'],
     'langsiran.html':       ['getProduk', 'getLangsiran'],

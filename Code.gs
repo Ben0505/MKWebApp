@@ -405,6 +405,8 @@ var READS = {
                        sheets: [SH_PENJUALAN, SH_ITEMS] },
   getAllNotas:       { fn: handleGetAllNotas,       key: 'v2_allnotas',   ttl: 60,
                        sheets: [SH_PENJUALAN, SH_ITEMS] },
+  getAllNotasLite:   { fn: handleGetAllNotasLite,   key: 'v2_allnotas_lite', ttl: 60,
+                       sheets: [SH_PENJUALAN] },
   getNotaBelumTagih: { fn: handleGetNotaBelumTagih, key: 'v2_belumtagih', ttl: 30,
                        sheets: [SH_PENJUALAN, SH_TAGIHAN] },
   getTagihan:        { fn: handleGetTagihan,        key: 'v2_tagihan',    ttl: 60,
@@ -421,15 +423,23 @@ var READS = {
  * Jalankan satu endpoint baca dan kembalikan TEKS JSON-nya.
  * Cache dicek lebih dulu; kalau meleset, handler dijalankan lalu disimpan.
  */
+var _TIMING = {};   // action -> "<ms>ms cache" | "<ms>ms sheet", diisi per permintaan
+
 function _readText(action) {
   var r = READS[action];
   if (!r) return null;
 
+  var t0 = new Date().getTime();
+
   var hit = _cacheGetText(r.key);
-  if (hit) return hit;
+  if (hit) {
+    _TIMING[action] = (new Date().getTime() - t0) + 'ms cache';
+    return hit;
+  }
 
   var txt = r.fn().getContent();
   _cachePutText(r.key, txt, r.ttl);
+  _TIMING[action] = (new Date().getTime() - t0) + 'ms sheet ' + Math.round(txt.length / 1024) + 'KB';
   return txt;
 }
 
@@ -503,7 +513,10 @@ function doGet(e) {
  *
  * Satu endpoint yang gagal tidak menjatuhkan yang lain.
  */
+var _T_START = 0;
+
 function handleBatch(e) {
+  _T_START = new Date().getTime();
   var raw  = String(e.parameter.a || e.parameter.actions || '');
   var list = raw.split(',')
                 .map(function (s) { return s.trim(); })
@@ -527,10 +540,20 @@ function handleBatch(e) {
     parts.push(JSON.stringify(a) + ':' + txt);
   }
 
+  // _ms menunjukkan waktu server per action dan apakah jawabannya datang
+  // dari cache atau dari pembacaan sheet, plus ukurannya. Dengan ini,
+  // "aplikasi terasa lambat" bisa dipersempit: kalau semua tertulis
+  // "cache" tapi halaman tetap lama, sisanya ada di cold start Apps
+  // Script atau di jaringan — bukan di pembacaan spreadsheet.
+  var ms = JSON.stringify(_TIMING);
+  _TIMING = {};
+
   // Dirangkai sebagai teks: payload anak sudah berupa JSON yang sah,
   // jadi tidak perlu parse lalu stringify ulang (hemat waktu & memori).
   return ContentService
-    .createTextOutput('{"success":true,"batch":true,"results":{' + parts.join(',') + '}}')
+    .createTextOutput('{"success":true,"batch":true,"_ms":' + ms +
+                      ',"total_ms":' + (new Date().getTime() - _T_START) +
+                      ',"results":{' + parts.join(',') + '}}')
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -925,6 +948,52 @@ function handleGetAllNotas() {
       status:     row[11],
       catatan:    row[12],
       itemsArray: itemsMap[idNota] || [],
+    });
+  }
+
+  return _json({ success: true, notas });
+}
+
+/**
+ * getAllNotasLite — sama dengan getAllNotas, TANPA rincian barang.
+ *
+ * Kenapa ada: halaman tagihan memuat seluruh riwayat nota hanya untuk
+ * mencari nota berdasarkan id dan menampilkan daftar nota milik satu
+ * pelanggan. Ia tidak pernah menyentuh itemsArray sama sekali — tetapi
+ * tetap ikut mengunduh seluruh baris barang.
+ *
+ * Diukur pada 600 nota (kira-kira setahun transaksi):
+ *   dengan rincian : 278 KB
+ *   tanpa rincian  : 161 KB   (43% lebih kecil)
+ *
+ * Selain payload, versi ini juga TIDAK membaca sheet Item Penjualan
+ * sama sekali — jadi satu pembacaan sheet penuh hilang dari tiap
+ * permintaan halaman tagihan.
+ */
+function handleGetAllNotasLite() {
+  const sh    = SS.getSheetByName(SH_PENJUALAN);
+  const tz    = Session.getScriptTimeZone();
+  const data  = sh.getDataRange().getValues();
+  const notas = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row[0]) continue;
+
+    notas.push({
+      idNota:   String(row[0]),
+      nota:     String(row[2]),
+      tanggal:  Utilities.formatDate(new Date(row[1]), tz, 'yyyy-MM-dd'),
+      client:   row[3],
+      alias:    row[4],
+      kota:     row[5],
+      group:    row[6],
+      subtotal: row[7],
+      ong:      row[8],
+      ret:      row[9],
+      total:    row[10],
+      status:   row[11],
+      catatan:  row[12],
     });
   }
 

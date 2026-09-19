@@ -805,7 +805,7 @@ async function loadAll() {
       MK_CACHE.fetch('getNotaBelumTagih',  GAS_URL),
       MK_CACHE.fetch('getTagihan',         GAS_URL),
       MK_CACHE.fetch('getKredit',          GAS_URL),
-      MK_CACHE.fetch('getAllNotas',        GAS_URL),
+      MK_CACHE.fetch('getAllNotasLite',    GAS_URL),
     ]);
     CLIENTS      = dC.success ? dC.pelanggan.map(p => ({
       name:      p.nama       || '',
@@ -1730,6 +1730,7 @@ async function saveEdit() {
   MK_CACHE.bust('getTagihan');
   MK_CACHE.bust('getKredit');
   MK_CACHE.bust('getAllNotas');
+  MK_CACHE.bust('getAllNotasLite');
   MK_CACHE.bust('getNotaBelumTagih');
   try { await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateTagihan',...TAGIHANLIST[idx]})}); } catch(e){}
 }
