@@ -347,6 +347,6 @@
 
 /* Cetak: bilah jaringan & sidebar tidak ikut tercetak */
 @media print {
-  #mk-net-bar, #mk-net-pill, #mk-net-toast,
+  #mk-net-bar, #mk-net-toast,
   .sidebar, #d-sidebar, .topbar, .mk-hamburger { display: none !important; }
 }

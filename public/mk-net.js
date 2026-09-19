@@ -137,10 +137,13 @@
 
   /* ─── Event bus untuk refresh latar belakang ──────────── */
   const listeners = [];
-  function emitRefresh(action, data) {
+  function emitRefresh(action, data, hadPrev) {
     listeners.forEach(fn => { try { fn(action, data); } catch (e) {} });
     window.dispatchEvent(new CustomEvent('mk:refresh', { detail: { action, data } }));
-    if (!listeners.length) showUpdatePill();
+    // Halaman yang mendaftarkan onRefresh sudah merender sendiri. Sisanya
+    // tidak, jadi tandai di bilah status bahwa ada isi baru yang menunggu —
+    // tapi hanya kalau memang ada data lama yang sedang tampil.
+    if (!listeners.length && hadPrev) { hasNew = true; renderBar(); }
   }
 
   /* ─── Penggabungan permintaan (batching) ───────────────────
@@ -173,13 +176,23 @@
     const changed = !prev || prev.fp !== fp;
 
     writeRawText(action, txt, fp, false);
-    if (changed) emitRefresh(action, d);
+    // hadPrev menandai apakah layar sedang menampilkan data LAMA.
+    // Kalau sebelumnya belum ada cache sama sekali, pemanggil sedang
+    // menunggu jawaban ini dan akan langsung merendernya — jadi tidak
+    // ada "data baru" yang tertinggal, dan bilah status tidak boleh
+    // mengatakan ada.
+    if (changed) emitRefresh(action, d, !!prev);
   }
 
   function settle(action, data, err) {
     const w = waiting[action] || [];
     delete waiting[action];
     delete inflight[action];
+
+    busyCount = Math.max(0, busyCount - 1);
+    if (!err) lastSync = Date.now();
+    renderBar();
+
     if (err) w.forEach(x => x.reject(err));
     else     w.forEach(x => x.resolve(data));
   }
@@ -247,6 +260,9 @@
     });
     inflight[action] = p;
     p.catch(() => {});          // penolakan ditangani pemanggil; jangan bising di console
+
+    busyCount++;                // dipakai bilah status di bawah layar
+    renderBar();
 
     batchUrl = gasUrl || batchUrl;
     if (!batchTimer) batchTimer = setTimeout(flushBatch, 0);
@@ -420,87 +436,243 @@
   };
   window.MK_NET = MK_NET;
 
-  /* ─── Indikator koneksi ───────────────────────────────── */
+  /* ─── Bilah status (selalu tampil) ─────────────────────────
+     Menggantikan dua hal dari versi sebelumnya:
+
+       1. Bilah merah yang HANYA muncul saat offline. Selebihnya
+          tidak ada tanda apa pun, jadi saat data sedang diambil
+          layar terlihat sama persis dengan saat sudah selesai —
+          tidak ada cara tahu apakah masih menunggu.
+
+       2. Pil melayang "Data baru tersedia — ketuk untuk muat
+          ulang" yang muncul di tengah bawah, menutupi isi
+          halaman, lalu hilang sendiri setelah 12 detik. Kalau
+          sedang tidak melihat layar, pesannya terlewat.
+
+     Sekarang: satu baris tipis yang menetap di bawah layar.
+     Kiri  — keadaan saat ini (sedang mengambil / sudah terbaru /
+             offline / ada perubahan menunggu dikirim).
+     Kanan — satu tombol kecil untuk memuat ulang data.
+
+     Baris ini tidak pernah menutupi isi halaman: tingginya
+     dikompensasi lewat padding-bottom pada <body>.             */
+
   let netOk = true, staleShown = false;
-  function setNetState(ok) { if (netOk !== ok) { netOk = ok; renderBanner(); } }
-  function flagStale() { staleShown = true; renderBanner(); }
+  let busyCount = 0;          // berapa action sedang diambil dari server
+  let lastSync  = 0;          // kapan terakhir kali data berhasil masuk
+  let hasNew    = false;      // server mengirim isi yang berbeda
+
+  function setNetState(ok) { if (netOk !== ok) { netOk = ok; renderBar(); } }
+  function flagStale() { staleShown = true; renderBar(); }
 
   function ensureCSS() {
     if (document.getElementById('mk-net-css')) return;
     const s = document.createElement('style');
     s.id = 'mk-net-css';
     s.textContent = `
-    #mk-net-bar{position:fixed;left:0;right:0;bottom:0;z-index:10000;
-      font-family:'DM Mono',monospace;font-size:11.5px;letter-spacing:.02em;
-      padding:8px 14px;text-align:center;display:none;
-      background:#8B5C00;color:#fff;}
-    #mk-net-bar.on{display:block;}
-    #mk-net-bar.warn{background:#8B5C00;}
-    #mk-net-bar.off{background:#B91C1C;}
-    #mk-net-pill{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;
-      z-index:10001;background:#1A1714;color:#fff;border-radius:999px;
-      padding:9px 16px;font-family:'DM Sans',sans-serif;font-size:12.5px;
-      cursor:pointer;display:none;box-shadow:0 6px 22px rgba(0,0,0,.28);}
-    #mk-net-pill.on{display:block;}
-    #mk-net-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;
-      z-index:10002;background:#1A6B45;color:#fff;border-radius:8px;
-      padding:9px 16px;font-family:'DM Sans',sans-serif;font-size:12.5px;
-      display:none;}
-    #mk-net-toast.on{display:block;}`;
+    #mk-net-bar{
+      position:fixed; left:0; right:0; bottom:0; z-index:10000;
+      display:flex; align-items:center; gap:10px;
+      height:30px; padding:0 12px;
+      padding-bottom:env(safe-area-inset-bottom);
+      box-sizing:content-box;
+      background:var(--surface,#fff);
+      border-top:1px solid var(--border,#D9D4CC);
+      font-family:var(--sans,'DM Sans',sans-serif);
+      font-size:12.5px; color:var(--text-2,#57514B);
+      user-select:none;
+    }
+    #mk-net-dot{
+      width:7px; height:7px; border-radius:50%; flex:0 0 auto;
+      background:var(--green,#1A6B45);
+    }
+    #mk-net-txt{flex:1; min-width:0; white-space:nowrap;
+      overflow:hidden; text-overflow:ellipsis;}
+    #mk-net-btn{
+      flex:0 0 auto; display:flex; align-items:center; gap:6px;
+      height:24px; padding:0 9px; border-radius:6px;
+      border:1px solid var(--border,#D9D4CC);
+      background:var(--surface,#fff); color:var(--text-2,#57514B);
+      font-family:inherit; font-size:12px; cursor:pointer;
+      transition:background-color .12s, border-color .12s, color .12s;
+    }
+    #mk-net-btn:hover{background:var(--surface2,#F0EDE8); color:var(--text,#1A1714);}
+    #mk-net-btn:active{transform:translateY(1px);}
+    #mk-net-btn:disabled{opacity:.45; cursor:default;}
+    #mk-net-btn .ic{display:inline-block; font-size:13px; line-height:1;}
+
+    /* Sedang mengambil data */
+    #mk-net-bar.busy #mk-net-dot{background:var(--blue,#185FA5);
+      animation:mkPulse 1s ease-in-out infinite;}
+    @keyframes mkPulse{0%,100%{opacity:1}50%{opacity:.25}}
+    #mk-net-bar.busy #mk-net-btn .ic{animation:mkSpin .9s linear infinite;}
+    @keyframes mkSpin{to{transform:rotate(360deg)}}
+
+    /* Ada data baru yang belum ditampilkan — tombol ditonjolkan */
+    #mk-net-bar.fresh #mk-net-dot{background:var(--accent,#C4501A);}
+    #mk-net-bar.fresh #mk-net-btn{
+      border-color:var(--accent,#C4501A); color:var(--accent,#C4501A);
+      font-weight:600;}
+
+    /* Ada perubahan menunggu dikirim */
+    #mk-net-bar.warn{background:var(--amber-bg,#FEF8EC);
+      border-top-color:#E8D29A; color:var(--amber,#8B5C00);}
+    #mk-net-bar.warn #mk-net-dot{background:var(--amber,#8B5C00);}
+
+    /* Tidak ada sambungan */
+    #mk-net-bar.off{background:#FDECEC; border-top-color:#F0BDBD; color:#B3300F;}
+    #mk-net-bar.off #mk-net-dot{background:#B3300F;}
+
+    #mk-net-toast{position:fixed;left:50%;transform:translateX(-50%);
+      bottom:46px; z-index:10002; background:var(--green,#1A6B45); color:#fff;
+      border-radius:8px; padding:9px 16px;
+      font-family:var(--sans,'DM Sans',sans-serif); font-size:13px;
+      box-shadow:0 6px 22px rgba(0,0,0,.2); display:none;}
+    #mk-net-toast.on{display:block;}
+
+    /* Sejajar dengan sidebar, bukan memotongnya. Lebar sidebar mengikuti
+       nilai yang sudah dipakai auth.js: 210px penuh, 60px mode ikon. */
+    @media (min-width:1024px){#mk-net-bar{left:var(--sb-full,210px);}}
+    @media (min-width:640px) and (max-width:1023px){#mk-net-bar{left:var(--sb-icon,60px);}}
+
+    /* Baris ini tidak ikut tercetak, dan tidak boleh menutupi isi */
+    @media print{#mk-net-bar,#mk-net-toast{display:none!important;}}
+    body{padding-bottom:calc(34px + env(safe-area-inset-bottom));}
+    `;
     document.head.appendChild(s);
   }
 
   function el(id, cls) {
+    if (!document.body) return null;
     let e = document.getElementById(id);
-    if (!e) {
-      e = document.createElement('div');
-      e.id = id;
-      if (cls) e.className = cls;
-      document.body.appendChild(e);
-    }
+    if (!e) { e = document.createElement('div'); e.id = id; if (cls) e.className = cls;
+              document.body.appendChild(e); }
     return e;
   }
 
-  function renderBanner() {
+  /** "baru saja" / "3 mnt lalu" / "1 jam lalu" */
+  function sinceText(ts) {
+    if (!ts) return '';
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 45)   return 'baru saja';
+    if (s < 3600) return Math.round(s / 60) + ' mnt lalu';
+    if (s < 86400) return Math.round(s / 3600) + ' jam lalu';
+    return Math.round(s / 86400) + ' hari lalu';
+  }
+
+  function buildBar() {
+    // Permintaan data bisa berangkat sebelum <body> ada (berkas ini dimuat
+    // di <head>). Tanpa penjaga ini, appendChild akan gagal.
+    if (!document.body) return null;
     ensureCSS();
-    const bar = el('mk-net-bar');
-    const n = qRead().length;
-    if (!navigator.onLine || !netOk) {
-      bar.className = 'on off';
-      bar.textContent = n
-        ? `⚠ Offline — ${n} perubahan menunggu dikirim`
-        : '⚠ Offline — menampilkan data tersimpan';
+    let bar = document.getElementById('mk-net-bar');
+    if (bar) return bar;
+
+    bar = document.createElement('div');
+    bar.id = 'mk-net-bar';
+    bar.innerHTML =
+      '<span id="mk-net-dot"></span>' +
+      '<span id="mk-net-txt"></span>' +
+      '<button id="mk-net-btn" type="button" title="Muat ulang data">' +
+        '<span class="ic">↻</span><span id="mk-net-btn-lbl">Muat ulang</span>' +
+      '</button>';
+    document.body.appendChild(bar);
+    document.getElementById('mk-net-btn').addEventListener('click', () => MK_NET.refresh());
+    return bar;
+  }
+
+  function renderBar() {
+    const bar = buildBar();
+    if (!bar) return;           // <body> belum ada — akan digambar saat DOM siap
+    const txt = document.getElementById('mk-net-txt');
+    const btn = document.getElementById('mk-net-btn');
+    const lbl = document.getElementById('mk-net-btn-lbl');
+    const n   = qRead().length;
+
+    bar.className = '';
+    btn.disabled  = false;
+
+    if (busyCount > 0) {
+      bar.className = 'busy';
+      txt.textContent = 'Mengambil data...';
+      btn.disabled = true;
+      lbl.textContent = 'Memuat';
+    } else if (!navigator.onLine || !netOk) {
+      bar.className = 'off';
+      txt.textContent = n
+        ? `Tidak ada sambungan — ${n} perubahan menunggu`
+        : 'Tidak ada sambungan — menampilkan data tersimpan';
+      lbl.textContent = 'Coba lagi';
     } else if (n) {
-      bar.className = 'on warn';
-      bar.textContent = `↻ Mengirim ${n} perubahan tertunda...`;
+      bar.className = 'warn';
+      txt.textContent = `Mengirim ${n} perubahan tertunda...`;
+      lbl.textContent = 'Kirim ulang';
+    } else if (hasNew) {
+      bar.className = 'fresh';
+      txt.textContent = 'Ada data baru dari server';
+      lbl.textContent = 'Tampilkan';
     } else if (staleShown) {
-      bar.className = 'on warn';
-      bar.textContent = '↻ Data mungkin belum terbaru';
-      setTimeout(() => { staleShown = false; renderBanner(); }, 5000);
+      bar.className = 'warn';
+      txt.textContent = 'Data mungkin belum terbaru';
+      lbl.textContent = 'Muat ulang';
+      clearTimeout(renderBar._t);
+      renderBar._t = setTimeout(() => { staleShown = false; renderBar(); }, 5000);
     } else {
-      bar.className = '';
+      const s = sinceText(lastSync);
+      txt.textContent = lastSync ? `Data terbaru${s ? ' · ' + s : ''}` : 'Data tersimpan';
+      lbl.textContent = 'Muat ulang';
     }
   }
 
-  function showUpdatePill() {
-    ensureCSS();
-    const p = el('mk-net-pill');
-    p.textContent = '↻ Data baru tersedia — ketuk untuk muat ulang';
-    p.className = 'on';
-    p.onclick = () => location.reload();
-    clearTimeout(p._t);
-    p._t = setTimeout(() => { p.className = ''; }, 12000);
+  // "3 mnt lalu" harus ikut bertambah tanpa perlu ada kejadian apa pun
+  setInterval(() => { if (!busyCount && !hasNew) renderBar(); }, 30000);
+
+  /**
+   * refresh() — buang cache lalu muat ulang halaman.
+   *
+   * Memuat ulang, bukan sekadar mengambil ulang, karena sebagian besar
+   * halaman merender datanya sekali saat dibuka dan tidak mendengarkan
+   * pembaruan latar belakang; mengambil data baru tanpa memuat ulang
+   * tidak akan mengubah apa pun di layar.
+   *
+   * Karena memuat ulang berarti isian yang belum disimpan akan hilang,
+   * halaman yang sedang diisi akan dikonfirmasi lebih dulu.
+   */
+  MK_NET.refresh = function () {
+    if (hasUnsavedInput() &&
+        !window.confirm('Ada isian yang belum disimpan di halaman ini.\n' +
+                        'Memuat ulang akan menghapusnya. Lanjutkan?')) return;
+    try { MK_CACHE.bustAll(); } catch (e) {}
+    location.reload();
+  };
+
+  /** Adakah isian terketik yang belum disimpan? */
+  function hasUnsavedInput() {
+    try {
+      const f = document.querySelectorAll('input[type=text], input[type=number], textarea');
+      for (const i of f) {
+        if (i.offsetParent === null) continue;         // tersembunyi
+        if (i.readOnly || i.disabled) continue;
+        const v = (i.value || '').trim();
+        if (v && v !== (i.defaultValue || '').trim()) return true;
+      }
+    } catch (e) {}
+    return false;
   }
 
   function toast(msg) {
     ensureCSS();
     const t = el('mk-net-toast');
+    if (!t) return;
     t.textContent = msg;
     t.className = 'on';
     clearTimeout(t._t);
     t._t = setTimeout(() => { t.className = ''; }, 3500);
   }
   MK_NET.toast = toast;
+
+  // Nama lama dipertahankan: dipanggil dari beberapa tempat lain di berkas ini.
+  function renderBanner() { renderBar(); }
 
   /* ─── Perisai otomatis untuk SEMUA POST ke GAS ──────────
      Halaman-halaman lama memanggil fetch(GAS,{method:'POST'}) langsung.
