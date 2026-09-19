@@ -116,6 +116,12 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 /* Print */
 /* Print elements hidden on screen */
 #dp-receipt{display:none;}
+/* #dp-daily-print juga template cetak, tapi baris ini tidak pernah ada —
+   hanya #dp-receipt yang disembunyikan. Akibatnya kerangka "Cetak Harian"
+   (No / Nota / Nama / Jumlah / Catatan) ikut tampil di bawah halaman,
+   kosong dan tanpa keterangan. Aturan @media print di bawah memakai
+   !important, jadi mencetak tetap berjalan seperti biasa. */
+#dp-daily-print{display:none;}
 @media print{
   @page{size:215mm 140mm;margin:8mm 10mm;}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#fff!important;color:#000!important;}
