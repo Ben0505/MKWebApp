@@ -271,9 +271,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   </div><!-- /main -->
 </div><!-- /app -->
 
-<!-- Mobile bottom nav -->
-  <div class="bn-item active"><div class="bn-icon">📊</div><div class="bn-lbl">Ringkasan</div></div>
-</div>
+<!-- Sisa bilah navigasi bawah DIHAPUS di sini.
+     Pembungkus <div class="bottom-nav"> sudah tidak ada, sehingga
+     satu tombol "Ringkasan" tertinggal sebagai elemen lepas dan
+     TAMPIL di bawah halaman — setinggi 45px, di layar besar maupun
+     HP — padahal .bottom-nav sendiri memang disembunyikan.
+     Tag </div> penutupnya juga tidak punya pasangan pembuka. -->
 
 <div class="toast" id="toast"></div>
 <script src="mk-config.js"></script>

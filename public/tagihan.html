@@ -725,24 +725,18 @@ textarea{resize:vertical;min-height:68px;}
   </div>
 </div>
 
-    <div style="margin-top:3pt;"><strong>Tanggal</strong> : <span id="tp-tgl">—</span></div>
-  </div>
-  <table class="tp-table">
-    <thead>
-      <tr>
-        <th style="width:14%">Nama</th>
-        <th style="width:10%">Tanggal Nota</th>
-        <th style="width:7%;text-align:center">Nota</th>
-        <th style="width:16%;text-align:right">Sub-Total</th>
-        <th style="width:9%;text-align:right">Ongkir</th>
-        <th style="width:10%;text-align:right">RT / pot</th>
-        <th style="width:16%;text-align:right">Total Tagihan</th>
-        <th>Catatan</th>
-      </tr>
-    </thead>
-    <tbody id="tp-rows"></tbody>
-  </table>
-</div>
+<!-- Kerangka cetak tagihan versi lama DIHAPUS di sini.
+     Tabel itu (Nama / Tanggal Nota / Nota / Sub-Total / Ongkir /
+     RT-pot / Total Tagihan / Catatan) tampil kosong di bawah halaman.
+
+     Ia memang sudah tidak terpakai: tidak ada CSS untuk .tp-table,
+     dan tidak ada JavaScript yang pernah mengisi #tp-rows atau
+     #tp-tgl. Fungsi cetak sekarang dikerjakan printTagihan(), yang
+     menyusun dokumen HTML sendiri lalu membukanya di jendela baru.
+
+     Dua tag </div> penutup di blok ini juga tidak punya pasangan
+     pembuka — pembungkusnya pernah terhapus — sehingga struktur
+     halaman menutup lebih awal dari seharusnya. -->
 
 <div class="toast" id="toast"></div>
 
