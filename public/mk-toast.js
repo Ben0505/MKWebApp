@@ -16,12 +16,12 @@
       terlihat jelas di layar besar maupun HP. Sekarang keduanya
       bertumpuk rapi: pesan tepat DI ATAS bilah status.
 
-   2. Pesan gagal ikut hilang sendiri.
-      "Simpan gagal" dulu menghilang setelah 2,5-3 detik sama
-      seperti pesan berhasil. Kalau pas tidak melihat layar,
-      kegagalan itu terlewat dan orang mengira notanya tersimpan.
-      Sekarang: pesan BERHASIL hilang sendiri, pesan GAGAL
-      menetap sampai ditutup.
+   2. Pesan gagal terlalu cepat hilang.
+      "Simpan gagal" dulu menghilang setelah 2,8 detik sama persis
+      seperti pesan berhasil. Sekarang keduanya tetap hilang
+      sendiri, tapi pesan gagal diberi waktu baca sedikit lebih
+      lama, dan warnanya merah, bukan hijau. Menyentuh barisnya
+      menutup lebih cepat.
 
    3. data-penjualan.html selalu memakai kelas 'ok'.
       showToast(msg) di sana menulis el.className='toast ok'
@@ -47,7 +47,10 @@
 (function () {
   'use strict';
 
-  var AUTO_HIDE_MS = 3200;      // hanya untuk pesan berhasil
+  /* Keduanya hilang sendiri. Pesan gagal diberi sedikit lebih lama
+     karena biasanya lebih panjang dan perlu dibaca sampai habis. */
+  var OK_MS  = 3200;
+  var ERR_MS = 4000;
   var timer = null;
 
   /* Kata-kata yang menandakan kegagalan. Diperlukan karena
@@ -85,7 +88,7 @@
       '  transform:translateY(100%); opacity:0; pointer-events:none;',
       '  transition:transform .22s ease, opacity .22s ease;',
       '}',
-      '#toast.show{transform:translateY(0); opacity:1; pointer-events:auto;}',
+      '#toast.show{transform:translateY(0); opacity:1; pointer-events:auto; cursor:pointer;}',
 
       /* Berhasil — hijau, sama dengan palet bilah status */
       '#toast.ok{background:#EDF6F1; border-top-color:#C9E3D6; color:#14603D;}',
@@ -93,14 +96,6 @@
       '#toast.err{background:#FDECEC; border-top-color:#F2C7C7; color:#A62B0D;}',
 
       '#toast .mk-t-msg{flex:1; min-width:0; overflow-wrap:break-word;}',
-      '#toast .mk-t-x{',
-      '  flex:0 0 auto; width:26px; height:26px; border:none; cursor:pointer;',
-      '  background:transparent; color:inherit; font-size:17px; line-height:1;',
-      '  border-radius:6px; opacity:.75; padding:0;',
-      '  font-family:inherit;',
-      '}',
-      '#toast .mk-t-x:hover{opacity:1; background:rgba(0,0,0,.07);}',
-      '#toast .mk-t-x:focus-visible{outline:2px solid currentColor; outline-offset:1px;}',
 
       /* Sejajar dengan bilah status: ikut menyingkir dari sidebar */
       '@media(min-width:1024px){#toast{left:var(--sb-full,210px);}}',
@@ -120,11 +115,10 @@
     if (!t.querySelector('.mk-t-msg')) {
       t.textContent = '';
       var m = document.createElement('span'); m.className = 'mk-t-msg';
-      var x = document.createElement('button');
-      x.type = 'button'; x.className = 'mk-t-x'; x.textContent = '×';
-      x.setAttribute('aria-label', 'Tutup pesan');
-      x.addEventListener('click', hide);
-      t.appendChild(m); t.appendChild(x);
+      t.appendChild(m);
+      /* Tidak ada tombol tutup: pesannya memang hilang sendiri.
+         Menyentuh barisnya menutup lebih cepat kalau menghalangi. */
+      t.addEventListener('click', hide);
     }
     /* Pembaca layar mengumumkan isinya saat berubah. */
     t.setAttribute('role', 'status');
@@ -153,7 +147,6 @@
 
     var err = isError(msg, ok);
     t.querySelector('.mk-t-msg').textContent = String(msg == null ? '' : msg);
-    t.querySelector('.mk-t-x').style.display = err ? '' : 'none';
     t.className = 'toast ' + (err ? 'err' : 'ok');
     position(t);
 
@@ -163,8 +156,7 @@
     t.classList.add('show');
 
     if (timer) { clearTimeout(timer); timer = null; }
-    // Pesan berhasil hilang sendiri; pesan gagal menunggu ditutup.
-    if (!err) timer = setTimeout(hide, AUTO_HIDE_MS);
+    timer = setTimeout(hide, err ? ERR_MS : OK_MS);
   }
 
   /* Titik pemanggilan halaman tidak berubah. Kedua nama dipakai:
