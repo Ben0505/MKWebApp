@@ -29,6 +29,8 @@
   /* ─── Konfigurasi ─────────────────────────────────────── */
   const NS        = 'mkc2_';        // prefix cache
   const QKEY      = 'mk_wq';        // antrian tulis
+  const FKEY      = 'mk_wf';        // simpanan GAGAL (lihat di bawah)
+  const MAX_FAIL  = 20;             // batas wajar, supaya tidak menumpuk
   const HARD_TTL  = 24 * 3600e3;    // data basi masih dipakai s/d 24 jam
   const TIMEOUT   = 12000;          // 12 dtk per percobaan
   const RETRIES   = 2;              // total 3 percobaan
@@ -377,6 +379,35 @@
   function qRead()  { try { return JSON.parse(S.getItem(QKEY) || '[]'); } catch (e) { return []; } }
   function qWrite(a){ try { S.setItem(QKEY, JSON.stringify(a)); } catch (e) {} }
 
+  /* ─── Simpanan perubahan yang GAGAL disimpan ────────────────
+     Bedanya dengan QKEY di atas: antrian itu hanya terisi kalau
+     pemanggil meminta opts.queue, dan tidak ada satu pun halaman
+     yang memakainya. Semua halaman menyimpan lewat fetch(...POST)
+     biasa, yang dicegat perisai di bawah berkas ini.
+
+     Dulu, kalau simpanan itu gagal sampai ke server, yang terjadi
+     hanya setNetState(false) — bilah jadi merah dengan tulisan
+     "Gagal mengambil data dari server". Dua cacat sekaligus:
+     kalimatnya salah (yang gagal menyimpan, bukan mengambil), dan
+     merahnya hilang sendiri begitu ada permintaan BACA yang
+     berhasil. Pemanasan latar belakang berjalan beberapa detik
+     kemudian, berhasil, lalu bilah kembali hijau — peringatannya
+     menghapus dirinya sendiri padahal datanya tidak pernah masuk.
+
+     Simpanan ini bertahan di localStorage, jadi tetap ada walau
+     halaman ditutup, dan hanya hilang kalau kiriman ulangnya
+     benar-benar berhasil.                                      */
+  function wfRead()  { try { return JSON.parse(S.getItem(FKEY) || '[]'); } catch (e) { return []; } }
+  function wfWrite(a){ try { S.setItem(FKEY, JSON.stringify(a)); } catch (e) {} }
+  function wfAdd(url, body) {
+    var act = '';
+    try { act = (JSON.parse(body) || {}).action || ''; } catch (e) {}
+    const a = wfRead();
+    a.push({ url: url, body: body, action: act, at: Date.now() });
+    wfWrite(a.slice(-MAX_FAIL));
+    renderBar();
+  }
+
   const uuid = () => (crypto.randomUUID ? crypto.randomUUID()
     : 'r' + Date.now() + Math.random().toString(36).slice(2));
 
@@ -490,10 +521,18 @@
 
   let netOk = true, staleShown = false;
   let busyCount = 0;          // berapa action sedang diambil dari server
+  let saveCount = 0;          // berapa perubahan sedang DIKIRIM ke server
+  let retrying  = false;      // kiriman ulang atas permintaan pengguna
   let lastSync  = 0;          // kapan terakhir kali data berhasil masuk
   let hasNew    = false;      // server mengirim isi yang berbeda
 
   function setNetState(ok) { if (netOk !== ok) { netOk = ok; renderBar(); } }
+
+  /* Pakai baris pemberitahuan kalau mk-toast.js ada; kalau tidak,
+     pakai pil bawaan berkas ini. */
+  function showMsg(m, ok) {
+    if (window.MK_TOAST) window.MK_TOAST.show(m, ok); else toast(m);
+  }
   function flagStale() { staleShown = true; renderBar(); }
 
   function ensureCSS() {
@@ -639,7 +678,13 @@
         '<span class="ic">↻</span><span id="mk-net-btn-lbl">Muat ulang</span>' +
       '</button>';
     document.body.appendChild(bar);
-    document.getElementById('mk-net-btn').addEventListener('click', () => MK_NET.refresh());
+    document.getElementById('mk-net-btn').addEventListener('click', () => {
+      // Tombol yang sama, dua tugas: kalau ada perubahan yang gagal
+      // disimpan, itu yang harus diurus lebih dulu — bukan memuat
+      // ulang halaman, yang tidak menyelamatkan apa pun.
+      if (wfRead().length && MK_NET.retryWrites) MK_NET.retryWrites();
+      else MK_NET.refresh();
+    });
     return bar;
   }
 
@@ -650,12 +695,38 @@
     const btn = document.getElementById('mk-net-btn');
     const lbl = document.getElementById('mk-net-btn-lbl');
     const n   = qRead().length;
+    const nf  = wfRead().length;
     const narrow = window.innerWidth < 420;
 
     bar.className = '';
     btn.disabled  = false;
 
-    if (busyCount > 0) {
+    if (saveCount > 0) {
+      // KUNING — perubahan sedang dikirim
+      bar.className = 'busy';
+      txt.textContent = retrying ? 'Mengirim ulang...' : 'Menyimpan...';
+      btn.disabled = true;
+      lbl.textContent = narrow ? '' : 'Menyimpan';
+
+    } else if (nf > 0) {
+      /* MERAH — dan menetap.
+
+         Sengaja diperiksa SEBELUM busyCount dan netOk. Kalau tidak,
+         pengambilan data biasa yang kebetulan berjalan akan menimpa
+         peringatan ini dengan "Mengambil data..." lalu "Data terbaru",
+         persis cacat yang mau diperbaiki. Satu-satunya yang boleh
+         menutupi peringatan ini adalah kiriman ulang yang sedang
+         berjalan, karena itu memang penanganannya.
+
+         Hilang hanya kalau kiriman ulangnya berhasil, atau kalau
+         server menjawab dengan penolakan tegas — lihat retryWrites(). */
+      bar.className = 'bad';
+      txt.textContent = navigator.onLine
+        ? (nf === 1 ? 'Perubahan gagal disimpan' : nf + ' perubahan gagal disimpan')
+        : `Tidak ada sambungan — ${nf} perubahan gagal disimpan`;
+      lbl.textContent = 'Coba lagi';
+
+    } else if (busyCount > 0) {
       // KUNING — sedang berjalan
       bar.className = 'busy';
       txt.textContent = 'Mengambil data...';
@@ -707,7 +778,7 @@
   }
 
   // "3 mnt lalu" harus ikut bertambah tanpa perlu ada kejadian apa pun
-  setInterval(() => { if (!busyCount && !hasNew) renderBar(); }, 30000);
+  setInterval(() => { if (!busyCount && !saveCount && !hasNew) renderBar(); }, 30000);
 
   /**
    * refresh() — buang cache lalu muat ulang halaman.
@@ -802,11 +873,79 @@
             return attempt(n + 1);
           }
           setNetState(false);
+          /* Setiap percobaan sudah habis dan kita TIDAK TAHU apakah
+             datanya sempat masuk. Itulah yang dicatat: bukan "server
+             menolak", tapi "tidak ada jawaban". Penolakan tegas dari
+             server (HTTP 200 dengan success:false) sengaja TIDAK
+             dicatat di sini — halaman sudah menampilkan pesannya
+             sendiri, dan mengirim ulang tidak akan mengubah jawaban,
+             jadi bilahnya akan merah selamanya tanpa jalan keluar. */
+          wfAdd(url, body);
           throw e;
         }
       };
-      return attempt(0);
+
+      saveCount++;
+      renderBar();
+      return attempt(0).finally(() => { saveCount = Math.max(0, saveCount - 1); renderBar(); });
     };
+
+    /* ─── Kirim ulang perubahan yang gagal ────────────────────
+       Aman diulang: perisai di atas menyisipkan clientRef ke setiap
+       badan permintaan, dan doPost di Code.gs v2 mengingat clientRef
+       selama 6 jam lalu membalas hasil yang lama. Jadi kalau ternyata
+       simpanan pertama SUDAH masuk dan yang hilang cuma jawabannya,
+       kiriman ulang tidak membuat nota kedua — server menjawab dengan
+       hasil yang sama dan catatannya dibersihkan.                  */
+    MK_NET.retryWrites = async function () {
+      const jobs = wfRead();
+      if (!jobs.length) return;
+      if (!navigator.onLine) { showMsg('⚠ Masih tidak ada sambungan', false); return; }
+
+      retrying = true; saveCount++; renderBar();
+      const sisa = [];
+      let ok = 0, ditolak = 0;
+
+      for (const job of jobs) {
+        try {
+          const res = await raw(job.url, { method: 'POST', body: job.body });
+          if (!res.ok) { sisa.push(job); continue; }
+          let d = null;
+          try { d = await res.clone().json(); } catch (e) {}
+          // Server menjawab. Entah berhasil atau menolak, nasibnya sudah
+          // pasti — jadi tidak perlu terus ditandai sebagai "tidak tahu".
+          if (d && d.success === false) ditolak++; else ok++;
+          /* Server menjawab, berarti jaringannya sehat. Tanpa ini,
+             netOk yang tadi dijatuhkan oleh kegagalan kirim tetap
+             false, dan bilah tinggal merah dengan kalimat yang
+             salah ("Gagal mengambil data") padahal tidak ada lagi
+             yang tertunda. */
+          setNetState(true);
+        } catch (e) {
+          sisa.push(job);          // masih tidak ada jawaban
+        }
+      }
+
+      wfWrite(sisa);
+      retrying = false; saveCount = Math.max(0, saveCount - 1);
+      if (ok) { setNetState(true); MK_CACHE.bustAll(); }
+      renderBar();
+
+      if (sisa.length) {
+        showMsg(`⚠ ${sisa.length} perubahan masih gagal disimpan`, false);
+      } else if (ditolak) {
+        showMsg(`⚠ ${ditolak} perubahan ditolak server — periksa datanya`, false);
+      } else {
+        showMsg(`✓ ${ok} perubahan berhasil disimpan`, true);
+        /* Muat ulang supaya layar menampilkan isi yang sudah masuk —
+           tapi jangan kalau ada isian yang sedang diketik, karena
+           memuat ulang akan menghapusnya. Itu menukar satu masalah
+           dengan masalah yang sama. */
+        if (!hasUnsavedInput()) setTimeout(() => location.reload(), 1200);
+      }
+    };
+
+    MK_NET.failedWrites = () => wfRead().length;
   })();
 
   /* ─── Pemanasan otomatis halaman berikutnya ────────────────
