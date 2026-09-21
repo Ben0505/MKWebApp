@@ -743,6 +743,10 @@
   }
 
   function toast(msg) {
+    /* Kalau mk-toast.js dimuat, pesan ini memakai baris yang sama
+       dengan pesan halaman, supaya tidak ada dua pil melayang yang
+       saling menutupi di atas bilah status. */
+    if (window.MK_TOAST) { window.MK_TOAST.show(msg, true); return; }
     ensureCSS();
     const t = el('mk-net-toast');
     if (!t) return;
