@@ -169,6 +169,45 @@
   let   batchTimer = null;
   let   batchUrl   = null;
 
+  /* ─── Permintaan spekulatif (pemanasan halaman lain) ────────
+     autoWarm() meminta data untuk halaman yang BELUM dibuka. Itu
+     tebakan, bukan permintaan pengguna, jadi dua aturan berlaku:
+
+       1. Tidak boleh berubah jadi badai permintaan. Kalau batch
+          tidak tersedia, mundur ke permintaan satuan berarti 10
+          eksekusi Apps Script sekaligus — Google membatasi jumlah
+          eksekusi bersamaan, jadi sebagian gagal dan bilah status
+          jadi merah. Lebih baik pemanasannya dibatalkan saja.
+       2. Tidak boleh mewarnai bilah status merah. Tebakan yang
+          gagal tentang halaman yang tidak sedang dibuka bukan
+          gangguan sambungan yang perlu dilaporkan.
+
+     Kalau halaman ikut meminta action yang sama, statusnya naik
+     jadi permintaan sungguhan dan kedua aturan itu tidak berlaku. */
+  const spec = {};            // action -> true selama hanya pemanasan yang menunggu
+
+  /* ─── Action yang sudah diambil oleh satu putaran pengiriman ─────
+     flushBatch membaca Object.keys(waiting), tapi isi waiting baru
+     dihapus di settle(). Kalau backend lambat, permintaan putaran
+     pertama masih menggantung saat putaran kedua berjalan — dan
+     putaran kedua ikut mengambil action yang sama sekali lagi.
+
+     Akibatnya dua: permintaan ganda untuk data yang sama, dan
+     pemanasan yang seharusnya murni spekulatif jadi tercampur
+     action sungguhan, sehingga tidak bisa dibatalkan diam-diam.
+     Di mock yang menjawab seketika ini tidak pernah terlihat. */
+  const claimed = {};
+
+  /* Apakah backend mengenal action=batch. null = belum tahu.
+     Disimpan per-tab: kalau Code.gs dideploy ulang, tab baru
+     akan memeriksanya lagi. */
+  let batchOK = null;
+  try { if (S.getItem('mk_nobatch') === '1') batchOK = false; } catch (e) {}
+  function markNoBatch() {
+    batchOK = false;
+    try { S.setItem('mk_nobatch', '1'); } catch (e) {}
+  }
+
   /** Simpan hasil ke cache + beri tahu halaman kalau isinya berubah. */
   function absorb(action, d) {
     if (!d || !d.success) return;
@@ -190,6 +229,8 @@
     const w = waiting[action] || [];
     delete waiting[action];
     delete inflight[action];
+    delete spec[action];
+    delete claimed[action];
 
     busyCount = Math.max(0, busyCount - 1);
     if (!err) lastSync = Date.now();
@@ -200,7 +241,7 @@
   }
 
   /** Ambil satu action sendirian (fallback & kasus permintaan tunggal). */
-  async function fetchSingle(action, url) {
+  async function fetchSingle(action, url, quiet) {
     try {
       let d = await netGet(`${url}?action=${action}`);
       // Backend lama menjawab action tak dikenal dengan pesan status biasa
@@ -216,7 +257,8 @@
       settle(action, d);
       return d;
     } catch (e) {
-      setNetState(false);
+      // Pemanasan yang gagal tidak menjatuhkan status sambungan.
+      if (!quiet) setNetState(false);
       settle(action, null, e);
       throw e;
     }
@@ -232,7 +274,7 @@
      lama selalu bisa dipakai sebagai gantinya. */
   const ACTION_FALLBACK = { getAllNotasLite: 'getAllNotas' };
 
-  async function resolveMissing(action, url) {
+  async function resolveMissing(action, url, quiet) {
     const alt = ACTION_FALLBACK[action];
     if (alt) {
       try {
@@ -240,38 +282,61 @@
         if (d && d.success) { setNetState(true); absorb(action, d); settle(action, d); return; }
       } catch (e) { /* jatuh ke percobaan satuan di bawah */ }
     }
-    await fetchSingle(action, url).catch(() => {});
+    await fetchSingle(action, url, quiet).catch(() => {});
   }
 
   async function flushBatch() {
     batchTimer = null;
-    const actions = Object.keys(waiting);
+    // Hanya yang belum diambil putaran sebelumnya (lihat `claimed`).
+    const actions = Object.keys(waiting).filter(a => !claimed[a]);
     const url     = batchUrl;
     if (!actions.length || !url) return;
+    actions.forEach(a => { claimed[a] = true; });
+
+    // Semua-spekulatif? Maka tidak ada satu pun yang ditunggu pengguna.
+    const allSpec = actions.every(a => spec[a]);
+
+    /* Mundur ke permintaan satuan = satu eksekusi Apps Script per action.
+       Untuk data yang ditunggu pengguna itu memang harus dilakukan. Untuk
+       pemanasan, tidak: 10 eksekusi sekaligus melewati batas eksekusi
+       bersamaan Google, sebagian gagal, dan bilah status jadi merah —
+       padahal tidak ada yang meminta datanya. Jadi pemanasannya
+       dibatalkan diam-diam, dan halaman tetap mengambil datanya sendiri
+       saat benar-benar dibuka. */
+    const giveUp = () => actions.forEach(a => settle(a, null, new Error('warm dibatalkan')));
+    const fanOut = () => Promise.all(actions.map(a => fetchSingle(a, url, allSpec).catch(() => {})));
 
     // Cuma satu → tidak ada gunanya dibungkus batch.
     if (actions.length === 1) {
-      await fetchSingle(actions[0], url).catch(() => {});
+      await fetchSingle(actions[0], url, allSpec).catch(() => {});
       return;
     }
+
+    // Sudah diketahui backend-nya belum kenal batch: jangan buang satu
+    // perjalanan lagi untuk memeriksanya.
+    if (batchOK === false) { if (allSpec) return giveUp(); await fanOut(); return; }
 
     let res = null;
     try {
       res = await netGet(`${url}?action=batch&a=${encodeURIComponent(actions.join(','))}`);
     } catch (e) {
       // Batch gagal (jaringan / URL terlalu panjang) → coba satuan.
+      if (allSpec) return giveUp();
       setNetState(false);
-      await Promise.all(actions.map(a => fetchSingle(a, url).catch(() => {})));
+      await fanOut();
       return;
     }
 
     // Backend lama tidak mengenal action=batch dan membalas pesan status
-    // biasa. Kenali itu, lalu mundur ke permintaan satuan.
+    // biasa. Kenali itu, ingat, lalu mundur ke permintaan satuan.
     if (!res || !res.batch || !res.results) {
-      await Promise.all(actions.map(a => fetchSingle(a, url).catch(() => {})));
+      markNoBatch();
+      if (allSpec) return giveUp();
+      await fanOut();
       return;
     }
 
+    batchOK = true;
     setNetState(true);
     const missing = [];
     actions.forEach(a => {
@@ -280,13 +345,17 @@
       absorb(a, d);
       settle(a, d);
     });
-    if (missing.length) await Promise.all(missing.map(a => resolveMissing(a, url)));
+    if (missing.length) await Promise.all(missing.map(a => resolveMissing(a, url, allSpec)));
   }
 
   /** Minta data segar dari server. Otomatis digabung dengan permintaan
    *  lain yang terjadi pada tick yang sama. */
-  function revalidate(action, gasUrl) {
+  function revalidate(action, gasUrl, isSpec) {
+    // Permintaan sungguhan menaikkan status action yang tadinya
+    // cuma pemanasan, termasuk kalau permintaannya sudah berjalan.
+    if (!isSpec) delete spec[action];
     if (inflight[action]) return inflight[action];
+    if (isSpec) spec[action] = true;
 
     const p = new Promise((resolve, reject) => {
       (waiting[action] = waiting[action] || []).push({ resolve, reject });
@@ -488,7 +557,7 @@
       if (!navigator.onLine) return;
       const run = () => actions.forEach(a => {
         const o = readRaw(a);
-        if (!o || Date.now() - o.ts > softTTL(a)) revalidate(a, gasUrl).catch(() => {});
+        if (!o || Date.now() - o.ts > softTTL(a)) revalidate(a, gasUrl, true).catch(() => {});
       });
       if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout: 3000 });
       else setTimeout(run, 1500);
