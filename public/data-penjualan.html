@@ -681,7 +681,22 @@ let BASE     = [];                      // tujuh hari terakhir, disimpan utuh
 let MODE     = 'base';                  // 'base' | 'range' | 'all'
 let VIEW     = { dari:'', sampai:'' };  // yang SEDANG ditampilkan
 let ALL_MODE = false;                   // seluruh riwayat ada di memori
-let NO_RANGE = false;                   // backend belum kenal getNotasRange
+
+/* Apakah backend mendukung pengambilan per rentang. Diambil dari
+   mk-config.js, BUKAN dideteksi sendiri.
+
+   Sebelumnya halaman ini menebak: coba getNotasRange, kalau
+   jawabannya bukan success berarti backend lama, lalu mundur ke
+   getAllNotas. Tebakan itu yang merusak halaman. Setiap kali
+   dibuka ada satu permintaan yang memang akan gagal, dan yang
+   dijalankan sesudahnya adalah jalur cadangan — jalur yang paling
+   jarang dilewati sehingga paling mudah salah. Ketika jalur itu
+   ikut gagal, bilah status jadi merah dan tombol Cari tidak
+   menghasilkan apa-apa.
+
+   Sekarang tidak ada tebakan. Kalau saklarnya mati, halaman ini
+   berjalan persis seperti versi lama yang sudah terbukti. */
+const RANGE_API = !!(typeof MK_CONFIG !== 'undefined' && MK_CONFIG.RANGE_API);
 
 function rangeAction(dari, sampai){
   return `getNotasRange&dari=${dari}&sampai=${sampai}`;
@@ -710,30 +725,20 @@ function presetRange(preset){
 /* Ambil (atau pakai ulang) jendela tujuh hari. */
 async function loadBase(){
   if (MODE === 'base' && BASE.length) { ALL = BASE; return; }
-  if (NO_RANGE || ALL_MODE) { MODE = 'base'; return; }   // semuanya sudah di memori
+  if (ALL_MODE) { MODE = 'base'; return; }        // semuanya sudah di memori
 
-  const { dari, sampai } = baseRange();
   MK_LOADER.show('Memuat data...');
   try {
+    if (!RANGE_API) { await loadSemua(); return; }  // jalur lama yang terbukti
+
+    const { dari, sampai } = baseRange();
     const d = await MK_CACHE.fetch(rangeAction(dari, sampai), GAS);
     if (d && d.success) { BASE = (d.notas || []).map(normalizeNota); ALL = BASE; MODE = 'base'; }
-    else {
-      /* Backend menjawab, tapi tidak mengenal getNotasRange. Tandai
-         SEKARANG, sebelum mencoba yang lain. Dulu penandaan itu ada
-         di dalam loadSemua() dan hanya tercapai kalau pengambilan
-         seluruh riwayat BERHASIL — padahal di data sungguhan itulah
-         yang paling mungkin gagal. Akibatnya halaman tidak pernah
-         tahu backendnya belum mendukung rentang, lalu mengulang
-         pola yang sama — coba rentang, gagal, tarik seluruh riwayat —
-         di setiap tindakan berikutnya. */
-      NO_RANGE = true;
-      await loadSemua();
-    }
+    else { await loadSemua(); }
   } catch(e) {
-    /* Kegagalan jaringan, bukan tanda backend tidak mendukung rentang.
-       Jangan mundur ke getAllNotas: muatannya jauh lebih besar, jadi
-       kemungkinan gagalnya lebih besar lagi. Biarkan apa adanya —
-       bilah status sudah melaporkan sendiri. */
+    // Gagal mengambil. Biarkan isi layar apa adanya; bilah status
+    // sudah melaporkan sendiri. JANGAN menarik muatan yang lebih
+    // besar sebagai gantinya — itu lebih mungkin gagal lagi.
     if (!ALL.length) ALL = [];
   } finally { MK_LOADER.hide(); }
 }
@@ -741,7 +746,6 @@ async function loadBase(){
 /* Ambil SELURUH riwayat. Dipakai untuk dua hal: backend yang belum
    mengenal getNotasRange, dan tombol "cari di semua data". */
 async function loadSemua(){
-  NO_RANGE = true;               // ditandai lebih dulu, lihat loadBase()
   const d = await MK_CACHE.fetch('getAllNotas', GAS);
   ALL = d && d.success ? d.notas.map(normalizeNota) : [];
   BASE = ALL; ALL_MODE = true; MODE = 'base';
@@ -802,22 +806,26 @@ async function cariRentang(){
   btn.disabled = true;
 
   try {
-    if (!NO_RANGE && !ALL_MODE) {
+    /* Kalau seluruh riwayat sudah ada di memori — dan itulah keadaan
+       normal selama RANGE_API mati — pencarian ini murni menyaring.
+       Tidak ada permintaan, tidak ada yang bisa gagal. */
+    if (RANGE_API && !ALL_MODE) {
       MK_LOADER.show('Memuat data...');
       try {
         const d = await MK_CACHE.fetch(rangeAction(dari, sampai), GAS);
-        if (d && d.success) { ALL = (d.notas || []).map(normalizeNota); }
-        else { NO_RANGE = true; await loadSemua(); }
+        if (d && d.success) ALL = (d.notas || []).map(normalizeNota);
+        else                await loadSemua();
       } finally { MK_LOADER.hide(); }
+    } else if (!ALL.length) {
+      MK_LOADER.show('Memuat data...');
+      try { await loadSemua(); } finally { MK_LOADER.hide(); }
     }
-    // NO_RANGE / ALL_MODE: seluruh riwayat sudah ada di memori, cukup disaring.
+
     MODE = 'range';
     VIEW = { dari, sampai };
     setScope(`${fd(dari)} — ${fd(sampai)}`);
     go2();
   } catch(e) {
-    // Jaringan gagal. Isi layar dibiarkan apa adanya; bilah status
-    // sudah melaporkan kegagalannya sendiri.
     showToast('⚠ Gagal mengambil data untuk rentang itu', false);
   } finally { btn.disabled = false; }
 }
@@ -1191,10 +1199,12 @@ async function saveEditNota(){
   go2();
   MK_CACHE.bust('getAllNotas');
   // Jendela tujuh hari dan jendela pencarian punya kunci sendiri.
-  const b = baseRange();
-  MK_CACHE.bust(rangeAction(b.dari, b.sampai));
-  if (VIEW.dari && MODE === 'range') MK_CACHE.bust(rangeAction(VIEW.dari, VIEW.sampai));
-  BASE = [];
+  if (RANGE_API) {
+    const b = baseRange();
+    MK_CACHE.bust(rangeAction(b.dari, b.sampai));
+    if (VIEW.dari && MODE === 'range') MK_CACHE.bust(rangeAction(VIEW.dari, VIEW.sampai));
+  }
+  BASE = []; ALL_MODE = false;
   MK_CACHE.bust('getTodayNotas');
   MK_CACHE.bust('getPelanggan');
   try{

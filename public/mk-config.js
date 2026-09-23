@@ -22,6 +22,31 @@ const MK_CONFIG = {
      antara deployment lama dan baru saat pengujian.          */
   ENV_LABEL: 'UJI COBA',
 
+  /* ── Apakah Code.gs di server sudah punya getNotasRange ───
+     false = halaman Data Penjualan mengambil seluruh riwayat satu
+             kali lalu menyaringnya di browser. Ini perilaku yang
+             sudah terbukti jalan sejak dulu.
+     true  = halaman itu mengambil per rentang tanggal saja, jauh
+             lebih ringan.
+
+     BIARKAN false sampai Code.gs benar-benar dideploy ulang.
+
+     Cara memastikan sebelum mengubahnya: buka URL GAS di atas pada
+     peramban, tambahkan di belakangnya
+
+       ?action=getNotasRange&dari=2026-09-01&sampai=2026-09-07
+
+     Kalau jawabannya {"success":true,...} → boleh diisi true.
+     Kalau {"status":"ok","message":"BUKU MK API aktif."} → belum
+     dideploy, biarkan false.
+
+     Sengaja berupa saklar, bukan deteksi otomatis. Deteksi otomatis
+     berarti setiap kali halaman dibuka ada satu permintaan yang
+     memang akan gagal, lalu jalur cadangan yang dijalankan sesudah
+     kegagalan itu — jalur yang paling jarang dilewati, dan paling
+     mudah salah. Itulah yang membuat halaman ini rusak.          */
+  RANGE_API: false,
+
   /* ── Berapa lama sesi login bertahan (jam) ───────────────
      Dulu pakai sessionStorage → logout tiap kali tab ditutup.
      8 jam = satu kali login per hari kerja.                  */
