@@ -425,6 +425,44 @@ var READS = {
  */
 var _TIMING = {};   // action -> "<ms>ms cache" | "<ms>ms sheet", diisi per permintaan
 
+/* Nomor versi data nota. Cache rentang tidak bisa dibuang satu per
+   satu seperti READS — kuncinya tak terbatas banyaknya (tiap rentang
+   punya kunci sendiri). Jadi nomor ini ikut masuk ke dalam kunci:
+   begitu Penjualan atau Items berubah, nomornya naik dan SELURUH
+   cache rentang yang lama jadi tidak terjangkau dengan sendirinya. */
+function _notasVer() {
+  try { return PropertiesService.getScriptProperties().getProperty('notas_ver') || '0'; }
+  catch (e) { return '0'; }
+}
+function _bumpNotasVer() {
+  try {
+    var pr = PropertiesService.getScriptProperties();
+    pr.setProperty('notas_ver', String((+(pr.getProperty('notas_ver') || 0) + 1) % 1e9));
+  } catch (e) {}
+}
+
+var _DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function _readRangeText(dari, sampai) {
+  if (!_DATE_RE.test(dari || '') || !_DATE_RE.test(sampai || '')) return null;
+  if (dari > sampai) { var t = dari; dari = sampai; sampai = t; }
+
+  var key = 'v2_range_' + _notasVer() + '_' + dari + '_' + sampai;
+  var t0  = new Date().getTime();
+
+  var hit = _cacheGetText(key);
+  if (hit) {
+    _TIMING['getNotasRange'] = (new Date().getTime() - t0) + 'ms cache';
+    return hit;
+  }
+
+  var txt = handleGetNotasRange(dari, sampai).getContent();
+  _cachePutText(key, txt, 60);
+  _TIMING['getNotasRange'] = (new Date().getTime() - t0) + 'ms sheet ' +
+                             Math.round(txt.length / 1024) + 'KB';
+  return txt;
+}
+
 function _readText(action) {
   var r = READS[action];
   if (!r) return null;
@@ -445,6 +483,9 @@ function _readText(action) {
 
 /** Buang cache semua endpoint yang membaca sheet-sheet ini. */
 function _bustSheets(sheets) {
+  // Cache rentang tanggal ikut kedaluwarsa lewat nomor versi.
+  if (sheets.indexOf(SH_PENJUALAN) !== -1 || sheets.indexOf(SH_ITEMS) !== -1) _bumpNotasVer();
+
   var keys = [];
   for (var action in READS) {
     var r = READS[action];
@@ -489,6 +530,13 @@ function doGet(e) {
   try {
     if (action === 'login') return handleLogin(e);
     if (action === 'batch') return handleBatch(e);
+
+    if (action === 'getNotasRange') {
+      var txt = _readRangeText(e.parameter.dari, e.parameter.sampai);
+      if (txt === null) return _json({ success: false, error: 'Rentang tanggal tidak sah.' });
+      return ContentService.createTextOutput(txt)
+        .setMimeType(ContentService.MimeType.JSON);
+    }
 
     if (READS[action]) {
       return ContentService.createTextOutput(_readText(action))
@@ -917,6 +965,123 @@ function handleGetTodayNotas() {
   for (var k = 1; k < data.length; k++) { var v = +data[k][2] || 0; if (v > maxNota) maxNota = v; }
 
   return _json({ success: true, notas, nextNota: maxNota + 1 });
+}
+
+/* ============================================================
+   getNotasRange — baca HANYA nota dalam rentang tanggal
+   ------------------------------------------------------------
+   handleGetAllNotas() memakai sh.getDataRange().getValues(), yaitu
+   SELURUH sheet Penjualan (13 kolom) ditambah SELURUH sheet Items.
+   Setiap kali halaman Data Penjualan dibuka, seluruh riwayat
+   penjualan dikirim ke browser hanya untuk menampilkan beberapa
+   hari terakhir.
+
+   Cara kerja di sini, sesuai usul "cari dari bawah":
+
+     1. Baca SATU kolom saja — kolom tanggal. Untuk 5.000 nota itu
+        5.000 sel, bukan 65.000.
+     2. Telusuri dari baris PALING BAWAH ke atas, karena baris baru
+        selalu ditambahkan di bawah; nota terbaru pasti di sana.
+     3. Catat baris pertama dan terakhir yang masuk rentang, lalu
+        ambil SATU blok baris itu saja dengan seluruh kolomnya.
+
+   Kenapa tetap menelusuri sampai atas, bukan berhenti begitu lewat
+   tanggal awal: kalau ada nota yang dimasukkan mundur tanggalnya,
+   atau sheet-nya pernah diurut ulang, berhenti lebih awal membuat
+   nota itu hilang tanpa ada yang sadar. Menelusuri satu kolom
+   penuh tetap murah, dan yang mahal — mengambil 13 kolom serta
+   sheet Items — tetap dibatasi ke blok yang benar-benar dipakai.
+   ============================================================ */
+
+/** Ubah nilai sel tanggal jadi 'yyyy-MM-dd' tanpa Utilities.formatDate,
+ *  yang terlalu lambat kalau dipanggil ribuan kali. */
+function _ymd(v, tz) {
+  if (v instanceof Date) {
+    return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+  }
+  var t = String(v || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
+  if (!t) return '';
+  var d = new Date(t);
+  return isNaN(d.getTime()) ? '' : Utilities.formatDate(d, tz, 'yyyy-MM-dd');
+}
+
+function handleGetNotasRange(dari, sampai) {
+  var sh = SS.getSheetByName(SH_PENJUALAN);
+  var tz = Session.getScriptTimeZone();
+  var last = sh.getLastRow();
+  if (last < 2) return _json({ success: true, notas: [], dari: dari, sampai: sampai });
+
+  // (1) satu kolom tanggal saja
+  var tgl = sh.getRange(2, 2, last - 1, 1).getValues();
+
+  // (2) dari bawah ke atas
+  var lo = -1, hi = -1;
+  for (var i = tgl.length - 1; i >= 0; i--) {
+    var d = _ymd(tgl[i][0], tz);
+    if (!d) continue;
+    if (d >= dari && d <= sampai) { if (hi < 0) hi = i; lo = i; }
+  }
+  if (hi < 0) return _json({ success: true, notas: [], dari: dari, sampai: sampai });
+
+  // (3) satu blok baris, seluruh kolom
+  var first = lo + 2, n = hi - lo + 1;
+  var data  = sh.getRange(first, 1, n, 13).getValues();
+
+  var ids = {}, notas = [];
+  for (var r = 0; r < data.length; r++) {
+    var row = data[r];
+    if (!row[0]) continue;
+    var d2 = _ymd(row[1], tz);
+    if (d2 < dari || d2 > sampai) continue;     // baris selipan di dalam blok
+    var idNota = String(row[0]);
+    ids[idNota] = 1;
+    notas.push({
+      idNota:   idNota,
+      nota:     String(row[2]),
+      tanggal:  d2,
+      client:   row[3],
+      alias:    row[4],
+      kota:     row[5],
+      group:    row[6],
+      subtotal: row[7],
+      ong:      row[8],
+      ret:      row[9],
+      total:    row[10],
+      status:   row[11],
+      catatan:  row[12],
+      itemsArray: [],
+    });
+  }
+
+  // Items: perlakuan sama — kolom id saja dulu, baru blok barisnya.
+  var shIt = SS.getSheetByName(SH_ITEMS);
+  var lastIt = shIt.getLastRow();
+  if (lastIt > 1) {
+    var idCol = shIt.getRange(2, 1, lastIt - 1, 1).getValues();
+    var ilo = -1, ihi = -1;
+    for (var k = idCol.length - 1; k >= 0; k--) {
+      if (ids[String(idCol[k][0])]) { if (ihi < 0) ihi = k; ilo = k; }
+    }
+    if (ihi >= 0) {
+      var iData = shIt.getRange(ilo + 2, 1, ihi - ilo + 1, 9).getValues();
+      var map = {};
+      for (var j = 0; j < iData.length; j++) {
+        var ir = iData[j], key = String(ir[0]);
+        if (!ids[key]) continue;
+        if (!map[key]) map[key] = [];
+        map[key].push({
+          produk: ir[4], satuan: ir[5],
+          qty: +ir[6] || 0, harga: +ir[7] || 0, jumlah: +ir[8] || 0,
+        });
+      }
+      for (var m = 0; m < notas.length; m++) {
+        notas[m].itemsArray = map[notas[m].idNota] || [];
+      }
+    }
+  }
+
+  return _json({ success: true, notas: notas, dari: dari, sampai: sampai });
 }
 
 function handleGetAllNotas() {

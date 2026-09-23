@@ -288,10 +288,20 @@
   async function flushBatch() {
     batchTimer = null;
     // Hanya yang belum diambil putaran sebelumnya (lihat `claimed`).
-    const actions = Object.keys(waiting).filter(a => !claimed[a]);
-    const url     = batchUrl;
-    if (!actions.length || !url) return;
-    actions.forEach(a => { claimed[a] = true; });
+    const all = Object.keys(waiting).filter(a => !claimed[a]);
+    const url = batchUrl;
+    if (!all.length || !url) return;
+    all.forEach(a => { claimed[a] = true; });
+
+    /* Sebuah action bisa membawa parameternya sendiri, misalnya
+       'getNotasRange&dari=2026-09-17&sampai=2026-09-23'. Bentuk itu
+       tidak muat di daftar a=... milik batch, jadi dikirim satuan.
+       Tandanya tetap dipegang (claimed) sampai settle(), supaya
+       putaran berikutnya tidak mengambilnya lagi. */
+    const actions = all.filter(a => a.indexOf('&') === -1);
+    all.filter(a => a.indexOf('&') !== -1)
+       .forEach(a => { fetchSingle(a, url, !!spec[a]).catch(() => {}); });
+    if (!actions.length) return;
 
     // Semua-spekulatif? Maka tidak ada satu pun yang ditunggu pengguna.
     const allSpec = actions.every(a => spec[a]);

@@ -50,6 +50,37 @@ input::placeholder{color:var(--text-3);}
 .qrow{display:flex;gap:5px;}
 .qbtn{font-size:11px;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;background:var(--surface);color:var(--text-2);font-family:var(--mono);transition:all .12s;white-space:nowrap;}
 .qbtn:hover,.qbtn.on{background:var(--text);color:#fff;border-color:var(--text);}
+
+/* ── Tiga baris penyaring ─────────────────────────────────────
+   Baris 1 memuat data baru seketika. Baris 2 baru memuat saat
+   "Cari" ditekan — kalau tidak, setiap ketukan pada pemilih
+   tanggal akan menembak permintaan ke server. Baris 3 hanya
+   menyaring isi yang SUDAH dimuat, tanpa menyentuh jaringan. */
+.filter-row + .filter-row{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.fgroup{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.fsel{position:relative;}
+.fsel select{font-size:13px;padding:6px 26px 6px 10px;border:1px solid var(--border);
+  border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer;
+  -webkit-appearance:none;appearance:none;font-family:var(--sans);}
+.fcaret{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;
+  color:var(--text-3);pointer-events:none;}
+.fnote{font-size:11px;font-family:var(--mono);color:var(--text-3);white-space:nowrap;
+  margin-left:auto;}
+.fbtn-go{font-family:var(--sans);font-size:13px;font-weight:600;padding:7px 18px;
+  border-radius:var(--radius-sm);border:1px solid var(--text);background:var(--text);
+  color:#fff;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.fbtn-go:hover{opacity:.88;}
+.fbtn-go:disabled{opacity:.45;cursor:default;}
+.fbtn-print{font-family:var(--sans);font-size:13px;font-weight:500;padding:7px 14px;
+  border-radius:var(--radius-sm);border:1px solid #9FE1CB;background:#fff;color:#1A6B45;
+  cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;}
+.fr-3 #f-q{flex:1;min-width:150px;}
+.fsel-st{position:relative;min-width:130px;flex-shrink:0;}
+/* Tombol "cari di semua data", muncul hanya kalau pencarian tidak
+   ketemu di rentang yang sedang dimuat. */
+.fbtn-all{font-family:var(--sans);font-size:12px;font-weight:600;padding:6px 12px;
+  border-radius:var(--radius-sm);border:1px solid var(--accent,#C4501A);background:#fff;
+  color:var(--accent,#C4501A);cursor:pointer;white-space:nowrap;}
 /* Card / table */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
 .card-hd{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
@@ -188,6 +219,21 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
   .filter-box{border-radius:0;border-left:none;border-right:none;padding:10px 12px;}
   .filter-row{gap:6px;}
   .qrow{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding-bottom:2px;}
+  .fnote{display:none;}
+  .fr-2 .fgroup{flex:1 1 100%;}
+  .fr-2 .fdiv{display:none;}
+  .fr-2 #btn-cari{flex:1 1 100%;}
+  .fsel select{width:100%;}
+  .fr-2 .fgroup:first-child .fsel{flex:1;}
+  /* Dari dan Sampai bersebelahan tidak muat di 390px — ujung kanan
+     tanggal kedua terpotong. Jadi di layar sempit keduanya ditumpuk:
+     label di kolom kiri, kotak tanggal mengisi sisanya. */
+  .fgroup-tgl{display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center;}
+  .fgroup-tgl input[type=date]{width:100%;min-width:0;}
+  /* Baris 3: pencarian selebar layar, lalu status dan cetak berdampingan. */
+  .fr-3 #f-q{flex:1 1 100%;}
+  .fr-3 .fsel-st{flex:1;}
+  .fr-3 .fbtn-print{flex:0 0 auto;}
   /* Table → card rows */
   table{display:block;}
   thead{display:none;}
@@ -284,19 +330,24 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
       <div class="sc sc-green"><div class="sc-lbl">Nett Penjualan</div><div class="sc-val" id="sc-nett">—</div><div class="sc-sub">setelah retur</div></div>
     </div>
 
-    <!-- Filter -->
+    <!-- Filter — tiga baris:
+         1. pilihan cepat (langsung muat)
+         2. bulan/tahun + rentang tanggal (baru memuat saat "Cari" ditekan)
+         3. saring & cetak isi yang sudah dimuat                        -->
     <div class="filter-box">
-      <div class="filter-row">
+      <div class="filter-row fr-1">
         <div class="qrow" id="qbtns">
           <button class="qbtn" onclick="setQ(this,'today')">Hari ini</button>
-          <button class="qbtn on" onclick="setQ(this,'yesterday')">Kemarin</button>
-          <button class="qbtn" onclick="setQ(this,'week')">7 hari</button>
-          <button class="qbtn" onclick="setQ(this,'month')">Bulan ini</button>
+          <button class="qbtn" onclick="setQ(this,'yesterday')">Kemarin</button>
+          <button class="qbtn on" onclick="setQ(this,'week')">7 Hari</button>
         </div>
-        <!-- Month + Year picker -->
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-          <div style="position:relative;">
-            <select id="sel-bulan" onchange="setMonth()" style="font-size:13px;padding:6px 28px 6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer;-webkit-appearance:none;appearance:none;">
+        <span class="fnote" id="dp-scope">—</span>
+      </div>
+
+      <div class="filter-row fr-2">
+        <div class="fgroup">
+          <div class="fsel">
+            <select id="sel-bulan">
               <option value="">— Bulan</option>
               <option value="1">Januari</option><option value="2">Februari</option>
               <option value="3">Maret</option><option value="4">April</option>
@@ -305,23 +356,29 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
               <option value="9">September</option><option value="10">Oktober</option>
               <option value="11">November</option><option value="12">Desember</option>
             </select>
-            <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text-3);pointer-events:none;">▾</span>
+            <span class="fcaret">&#9662;</span>
           </div>
-          <div style="position:relative;">
-            <select id="sel-tahun" onchange="setMonth()" style="font-size:13px;padding:6px 28px 6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer;-webkit-appearance:none;appearance:none;">
-            </select>
-            <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text-3);pointer-events:none;">▾</span>
+          <div class="fsel">
+            <select id="sel-tahun"></select>
+            <span class="fcaret">&#9662;</span>
           </div>
         </div>
+
         <div class="fdiv"></div>
-        <span class="flbl">Dari</span>
-        <input type="date" id="f-dari" onchange="document.getElementById('sel-bulan').value='';go2()">
-        <span class="flbl">Sampai</span>
-        <input type="date" id="f-sampai" onchange="go2()">
-        <div class="fdiv"></div>
-        <input type="text" id="f-q" placeholder="Cari nota, nama, item..." style="min-width:190px;" oninput="go2()">
-        <div class="fdiv"></div>
-        <div class="sel" style="position:relative;min-width:120px">
+
+        <div class="fgroup fgroup-tgl">
+          <span class="flbl">Dari</span>
+          <input type="date" id="f-dari">
+          <span class="flbl">Sampai</span>
+          <input type="date" id="f-sampai">
+        </div>
+
+        <button id="btn-cari" class="fbtn-go" onclick="cariRentang()">Cari</button>
+      </div>
+
+      <div class="filter-row fr-3">
+        <input type="text" id="f-q" placeholder="Cari nota, nama, item..." oninput="go2()">
+        <div class="sel fsel-st">
           <select id="f-st" onchange="go2()">
             <option value="">Semua Status</option>
             <option value="__empty__">Tanpa Status</option>
@@ -329,10 +386,9 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
             <option value="PENDING">PENDING</option>
             <option value="TTP">TTP</option>
           </select>
-          <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;font-size:11px">▾</span>
+          <span class="fcaret">&#9662;</span>
         </div>
-        <div class="fdiv"></div>
-        <button onclick="printHarian()" style="font-family:var(--sans);font-size:13px;font-weight:500;padding:7px 14px;border-radius:var(--radius-sm);border:1px solid #9FE1CB;background:#fff;color:#1A6B45;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;">🖨 Cetak</button>
+        <button class="fbtn-print" onclick="printHarian()">&#128424; Cetak</button>
       </div>
     </div>
 
@@ -590,7 +646,6 @@ window.addEventListener('DOMContentLoaded',()=>{
     now.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
   load();
   loadPelanggan();
-  setQ(document.querySelector('.qbtn.on'),'yesterday',true);
 });
 
 function go(p){window.location.href=p;}
@@ -622,48 +677,145 @@ function normalizeNota(n) {
   };
 }
 
-async function load(){
+/* ============================================================
+   Pemuatan per rentang tanggal
+   ------------------------------------------------------------
+   Dulu: satu kali getAllNotas, SELURUH riwayat penjualan beserta
+   rincian barangnya, lalu semuanya disaring di browser. Halaman ini
+   hampir selalu cuma menampilkan beberapa hari terakhir, jadi
+   sebagian besar muatan itu terbuang.
+
+   Sekarang: hanya rentang yang sedang dilihat yang diambil.
+
+   Kalau Code.gs di server BELUM dideploy ulang, ia tidak mengenal
+   getNotasRange dan menjawab dengan pesan status biasa. Itu dikenali,
+   lalu halaman mundur ke getAllNotas dan menyaring di browser —
+   persis perilaku lama. Jadi berkas ini aman dipasang lebih dulu,
+   hanya saja belum ada keuntungan kecepatannya.
+   ============================================================ */
+let RANGE    = { dari:'', sampai:'' };   // jendela yang sedang dimuat
+let ALL_MODE = false;                    // true = seluruh riwayat ada di memori
+
+function rangeAction(dari, sampai){
+  return `getNotasRange&dari=${dari}&sampai=${sampai}`;
+}
+
+function setScope(txt){
+  const el = document.getElementById('dp-scope');
+  if (el) el.textContent = txt;
+}
+
+async function loadRange(dari, sampai, label){
+  RANGE = { dari, sampai };
+
+  // Sudah punya semuanya di memori → tidak perlu ke server lagi.
+  if (ALL_MODE) { setScope(label || `${fd(dari)} — ${fd(sampai)}`); go2(); return; }
+
   MK_LOADER.show('Memuat data...');
-  try{const d=await MK_CACHE.fetch('getAllNotas',GAS);ALL=d.success?d.notas.map(normalizeNota):[];}
-  catch(e){ALL=[];} finally{MK_LOADER.hide();}
-  populateYears();
+  try {
+    const d = await MK_CACHE.fetch(rangeAction(dari, sampai), GAS);
+    if (d && d.success) {
+      ALL = (d.notas || []).map(normalizeNota);
+      setScope(label || `${fd(dari)} — ${fd(sampai)}`);
+    } else {
+      await loadSemua(label);          // backend lama
+    }
+  } catch(e) {
+    try { await loadSemua(label); } catch(e2) { ALL = []; }
+  } finally { MK_LOADER.hide(); }
+
   go2();
 }
 
-function setQ(btn,preset,silent=false){
-  if(!silent){document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
-  // Clear month/year picker when quick button is used
-  const sb=document.getElementById('sel-bulan'); if(sb) sb.value='';
-  let sampai=jakartaDate(), dari='';
-  if(preset==='today'){dari=sampai;}
-  else if(preset==='yesterday'){dari=jakartaDate(-1);sampai=jakartaDate(-1);}
-  else if(preset==='week'){const d=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));d.setDate(d.getDate()-6);dari=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
-  else if(preset==='month'){const d=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));dari=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;}
-  document.getElementById('f-dari').value=dari;
-  document.getElementById('f-sampai').value=sampai;
-  if(!silent)go2();
+/* Ambil SELURUH riwayat. Dipakai untuk dua hal: backend yang belum
+   mengenal getNotasRange, dan tombol "cari di semua data". */
+async function loadSemua(label){
+  const d = await MK_CACHE.fetch('getAllNotas', GAS);
+  ALL = d && d.success ? d.notas.map(normalizeNota) : [];
+  ALL_MODE = true;
+  setScope(label ? label + ' · semua data' : 'semua data');
 }
 
-function setMonth() {
-  const bulan = +document.getElementById('sel-bulan').value;
-  const tahun = +document.getElementById('sel-tahun').value;
-  if(!bulan || !tahun) return;
+async function cariSemua(){
+  MK_LOADER.show('Mencari di semua data...');
+  try { await loadSemua('Semua riwayat'); } catch(e) {}
+  finally { MK_LOADER.hide(); }
+  RANGE = { dari:'', sampai:'' };
+  document.getElementById('f-dari').value = '';
+  document.getElementById('f-sampai').value = '';
   document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('on'));
-  const dari    = `${tahun}-${String(bulan).padStart(2,'0')}-01`;
-  const lastDay = new Date(tahun, bulan, 0);
-  const sampai  = `${lastDay.getFullYear()}-${String(lastDay.getMonth()+1).padStart(2,'0')}-${String(lastDay.getDate()).padStart(2,'0')}`;
+  go2();
+}
+
+async function load(){
+  populateYears();
+  await setQ(document.querySelector('.qbtn.on'), 'week');
+}
+
+function presetRange(preset){
+  let sampai = jakartaDate(), dari = sampai;
+  if (preset === 'today')          { dari = sampai; }
+  else if (preset === 'yesterday') { dari = jakartaDate(-1); sampai = jakartaDate(-1); }
+  else if (preset === 'week')      {
+    const d = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));
+    d.setDate(d.getDate() - 6);
+    dari = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  return { dari, sampai };
+}
+
+async function setQ(btn, preset){
+  document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  const sb = document.getElementById('sel-bulan'); if (sb) sb.value = '';
+
+  const { dari, sampai } = presetRange(preset);
   document.getElementById('f-dari').value   = dari;
   document.getElementById('f-sampai').value = sampai;
-  go2();
+
+  const LBL = { today:'Hari ini', yesterday:'Kemarin', week:'7 hari terakhir' };
+  await loadRange(dari, sampai, LBL[preset]);
 }
 
+/* Tombol "Cari" pada baris kedua. Sengaja TIDAK otomatis jalan saat
+   pemilih tanggal diubah: mengubah tanggal itu beberapa ketukan, dan
+   tiap ketukan akan jadi satu permintaan ke server. */
+async function cariRentang(){
+  const bulan = +document.getElementById('sel-bulan').value;
+  const tahun = +document.getElementById('sel-tahun').value;
+  let dari, sampai, label;
+
+  if (bulan && tahun) {
+    const akhir = new Date(tahun, bulan, 0);
+    dari   = `${tahun}-${String(bulan).padStart(2,'0')}-01`;
+    sampai = `${akhir.getFullYear()}-${String(akhir.getMonth()+1).padStart(2,'0')}-${String(akhir.getDate()).padStart(2,'0')}`;
+    label  = document.getElementById('sel-bulan').selectedOptions[0].textContent + ' ' + tahun;
+    document.getElementById('f-dari').value   = dari;
+    document.getElementById('f-sampai').value = sampai;
+  } else {
+    dari   = document.getElementById('f-dari').value;
+    sampai = document.getElementById('f-sampai').value;
+    if (!dari || !sampai) { showToast('⚠ Pilih bulan/tahun, atau isi tanggal Dari dan Sampai', false); return; }
+    if (dari > sampai)    { showToast('⚠ Tanggal "Dari" melewati "Sampai"', false); return; }
+  }
+
+  document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('on'));
+  const btn = document.getElementById('btn-cari');
+  btn.disabled = true;
+  try { await loadRange(dari, sampai, label); } finally { btn.disabled = false; }
+}
+
+/* Daftar tahun tidak lagi bisa disimpulkan dari data yang dimuat,
+   karena yang dimuat cuma beberapa hari. Dipakai rentang tetap:
+   tahun ini dan lima tahun ke belakang. */
 function populateYears() {
-  const years = [...new Set(ALL.map(n => n.tanggal ? n.tanggal.slice(0,4) : null).filter(Boolean))];
   const now = new Date().getFullYear();
-  if(!years.includes(String(now))) years.push(String(now));
-  years.sort((a,b)=>b-a);
   const sel = document.getElementById('sel-tahun');
-  if(sel) { sel.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join(''); sel.value = String(now); }
+  if (!sel) return;
+  let html = '';
+  for (let y = now; y >= now - 5; y--) html += `<option value="${y}">${y}</option>`;
+  sel.innerHTML = html;
+  sel.value = String(now);
 }
 
 function go2(){
@@ -692,7 +844,34 @@ function go2(){
   document.getElementById('sc-nett').textContent=rpS(tnett);
   document.getElementById('sc-range').textContent=dari&&sampai?`${fd(dari)} — ${fd(sampai)}`:dari?`sejak ${fd(dari)}`:'semua data';
 
+  hintSearchAll(q);
   pg=1;render();
+}
+
+/* Kotak "Cari nota" hanya menelusuri nota yang SEDANG dimuat. Selama
+   halaman ini memuat seluruh riwayat, itu tidak jadi soal. Sekarang
+   tidak: mencari nota lama di jendela 7 hari akan selalu nihil, dan
+   tanpa penjelasan orang akan mengira notanya sudah terhapus.
+
+   Jadi kalau pencarian tidak menemukan apa pun di jendela yang
+   dimuat, ditawarkan satu tombol untuk mencari ke seluruh riwayat.
+   Tidak dilakukan otomatis, karena itu berarti menarik seluruh data
+   — persis beban yang mau dihindari. */
+function hintSearchAll(q){
+  const row = document.querySelector('.fr-3');
+  let btn = document.getElementById('btn-cari-semua');
+  const perlu = q && !filt.length && !ALL_MODE;
+
+  if (!perlu) { if (btn) btn.remove(); return; }
+  if (btn) return;
+
+  btn = document.createElement('button');
+  btn.id = 'btn-cari-semua';
+  btn.className = 'fbtn-all';
+  btn.type = 'button';
+  btn.textContent = 'Tidak ada di rentang ini — cari di semua data';
+  btn.onclick = cariSemua;
+  row.appendChild(btn);
 }
 
 function render(){
@@ -1002,6 +1181,8 @@ async function saveEditNota(){
   closeM();
   go2();
   MK_CACHE.bust('getAllNotas');
+  // Jendela yang sedang dilihat punya kunci cache sendiri.
+  if (RANGE.dari) MK_CACHE.bust(rangeAction(RANGE.dari, RANGE.sampai));
   MK_CACHE.bust('getTodayNotas');
   MK_CACHE.bust('getPelanggan');
   try{
