@@ -58,10 +58,6 @@ input::placeholder{color:var(--text-3);}
    menyaring isi yang SUDAH dimuat, tanpa menyentuh jaringan. */
 .filter-row + .filter-row{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
 .fgroup{display:flex;align-items:center;gap:6px;flex-shrink:0;}
-.fsel{position:relative;}
-.fsel select{font-size:13px;padding:6px 26px 6px 10px;border:1px solid var(--border);
-  border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer;
-  -webkit-appearance:none;appearance:none;font-family:var(--sans);}
 .fcaret{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;
   color:var(--text-3);pointer-events:none;}
 .fnote{font-size:11px;font-family:var(--mono);color:var(--text-3);white-space:nowrap;
@@ -223,8 +219,6 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
   .fr-2 .fgroup{flex:1 1 100%;}
   .fr-2 .fdiv{display:none;}
   .fr-2 #btn-cari{flex:1 1 100%;}
-  .fsel select{width:100%;}
-  .fr-2 .fgroup:first-child .fsel{flex:1;}
   /* Dari dan Sampai bersebelahan tidak muat di 390px — ujung kanan
      tanggal kedua terpotong. Jadi di layar sempit keduanya ditumpuk:
      label di kolom kiri, kotak tanggal mengisi sisanya. */
@@ -345,27 +339,6 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
       </div>
 
       <div class="filter-row fr-2">
-        <div class="fgroup">
-          <div class="fsel">
-            <select id="sel-bulan">
-              <option value="">— Bulan</option>
-              <option value="1">Januari</option><option value="2">Februari</option>
-              <option value="3">Maret</option><option value="4">April</option>
-              <option value="5">Mei</option><option value="6">Juni</option>
-              <option value="7">Juli</option><option value="8">Agustus</option>
-              <option value="9">September</option><option value="10">Oktober</option>
-              <option value="11">November</option><option value="12">Desember</option>
-            </select>
-            <span class="fcaret">&#9662;</span>
-          </div>
-          <div class="fsel">
-            <select id="sel-tahun"></select>
-            <span class="fcaret">&#9662;</span>
-          </div>
-        </div>
-
-        <div class="fdiv"></div>
-
         <div class="fgroup fgroup-tgl">
           <span class="flbl">Dari</span>
           <input type="date" id="f-dari">
@@ -744,18 +717,34 @@ async function loadBase(){
   try {
     const d = await MK_CACHE.fetch(rangeAction(dari, sampai), GAS);
     if (d && d.success) { BASE = (d.notas || []).map(normalizeNota); ALL = BASE; MODE = 'base'; }
-    else { await loadSemua(); }                          // backend lama
+    else {
+      /* Backend menjawab, tapi tidak mengenal getNotasRange. Tandai
+         SEKARANG, sebelum mencoba yang lain. Dulu penandaan itu ada
+         di dalam loadSemua() dan hanya tercapai kalau pengambilan
+         seluruh riwayat BERHASIL — padahal di data sungguhan itulah
+         yang paling mungkin gagal. Akibatnya halaman tidak pernah
+         tahu backendnya belum mendukung rentang, lalu mengulang
+         pola yang sama — coba rentang, gagal, tarik seluruh riwayat —
+         di setiap tindakan berikutnya. */
+      NO_RANGE = true;
+      await loadSemua();
+    }
   } catch(e) {
-    try { await loadSemua(); } catch(e2) { ALL = []; }
+    /* Kegagalan jaringan, bukan tanda backend tidak mendukung rentang.
+       Jangan mundur ke getAllNotas: muatannya jauh lebih besar, jadi
+       kemungkinan gagalnya lebih besar lagi. Biarkan apa adanya —
+       bilah status sudah melaporkan sendiri. */
+    if (!ALL.length) ALL = [];
   } finally { MK_LOADER.hide(); }
 }
 
 /* Ambil SELURUH riwayat. Dipakai untuk dua hal: backend yang belum
    mengenal getNotasRange, dan tombol "cari di semua data". */
 async function loadSemua(){
+  NO_RANGE = true;               // ditandai lebih dulu, lihat loadBase()
   const d = await MK_CACHE.fetch('getAllNotas', GAS);
   ALL = d && d.success ? d.notas.map(normalizeNota) : [];
-  BASE = ALL; ALL_MODE = true; NO_RANGE = true; MODE = 'base';
+  BASE = ALL; ALL_MODE = true; MODE = 'base';
 }
 
 async function cariSemua(){
@@ -770,7 +759,6 @@ async function cariSemua(){
 }
 
 async function load(){
-  populateYears();
   const { dari, sampai } = baseRange();
   document.getElementById('f-dari').value   = dari;
   document.getElementById('f-sampai').value = sampai;
@@ -804,59 +792,34 @@ async function setQ(btn, preset){
    mengubah tanggal itu beberapa ketukan, dan tiap ketukan akan
    jadi satu permintaan ke server. */
 async function cariRentang(){
-  const bulan = +document.getElementById('sel-bulan').value;
-  const tahun = +document.getElementById('sel-tahun').value;
-  let dari, sampai, label;
-
-  if (bulan && tahun) {
-    const akhir = new Date(tahun, bulan, 0);
-    dari   = `${tahun}-${String(bulan).padStart(2,'0')}-01`;
-    sampai = `${akhir.getFullYear()}-${String(akhir.getMonth()+1).padStart(2,'0')}-${String(akhir.getDate()).padStart(2,'0')}`;
-    label  = document.getElementById('sel-bulan').selectedOptions[0].textContent + ' ' + tahun;
-    document.getElementById('f-dari').value   = dari;
-    document.getElementById('f-sampai').value = sampai;
-  } else {
-    dari   = document.getElementById('f-dari').value;
-    sampai = document.getElementById('f-sampai').value;
-    if (!dari || !sampai) { showToast('⚠ Pilih bulan/tahun, atau isi tanggal Dari dan Sampai', false); return; }
-    if (dari > sampai)    { showToast('⚠ Tanggal "Dari" melewati "Sampai"', false); return; }
-    label = `${fd(dari)} — ${fd(sampai)}`;
-  }
+  const dari   = document.getElementById('f-dari').value;
+  const sampai = document.getElementById('f-sampai').value;
+  if (!dari || !sampai) { showToast('⚠ Isi tanggal Dari dan Sampai dulu', false); return; }
+  if (dari > sampai)    { showToast('⚠ Tanggal "Dari" melewati "Sampai"', false); return; }
 
   document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('on'));
   const btn = document.getElementById('btn-cari');
   btn.disabled = true;
 
-  if (!NO_RANGE && !ALL_MODE) {
-    MK_LOADER.show('Memuat data...');
-    try {
-      const d = await MK_CACHE.fetch(rangeAction(dari, sampai), GAS);
-      if (d && d.success) { ALL = (d.notas || []).map(normalizeNota); MODE = 'range'; }
-      else { await loadSemua(); MODE = 'range'; }
-    } catch(e) {
-      try { await loadSemua(); MODE = 'range'; } catch(e2) { ALL = []; }
-    } finally { MK_LOADER.hide(); btn.disabled = false; }
-  } else {
-    MODE = 'range';                       // semuanya sudah di memori
-    btn.disabled = false;
-  }
-
-  VIEW = { dari, sampai };
-  setScope(label);
-  go2();
-}
-
-/* Daftar tahun tidak lagi bisa disimpulkan dari data yang dimuat,
-   karena yang dimuat cuma beberapa hari. Dipakai rentang tetap:
-   tahun ini dan lima tahun ke belakang. */
-function populateYears() {
-  const now = new Date().getFullYear();
-  const sel = document.getElementById('sel-tahun');
-  if (!sel) return;
-  let html = '';
-  for (let y = now; y >= now - 5; y--) html += `<option value="${y}">${y}</option>`;
-  sel.innerHTML = html;
-  sel.value = String(now);
+  try {
+    if (!NO_RANGE && !ALL_MODE) {
+      MK_LOADER.show('Memuat data...');
+      try {
+        const d = await MK_CACHE.fetch(rangeAction(dari, sampai), GAS);
+        if (d && d.success) { ALL = (d.notas || []).map(normalizeNota); }
+        else { NO_RANGE = true; await loadSemua(); }
+      } finally { MK_LOADER.hide(); }
+    }
+    // NO_RANGE / ALL_MODE: seluruh riwayat sudah ada di memori, cukup disaring.
+    MODE = 'range';
+    VIEW = { dari, sampai };
+    setScope(`${fd(dari)} — ${fd(sampai)}`);
+    go2();
+  } catch(e) {
+    // Jaringan gagal. Isi layar dibiarkan apa adanya; bilah status
+    // sudah melaporkan kegagalannya sendiri.
+    showToast('⚠ Gagal mengambil data untuk rentang itu', false);
+  } finally { btn.disabled = false; }
 }
 
 function go2(){
