@@ -332,8 +332,8 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
       <div class="filter-row fr-1">
         <div class="qrow" id="qbtns">
           <button class="qbtn" onclick="setQ(this,'today')">Hari ini</button>
-          <button class="qbtn" onclick="setQ(this,'yesterday')">Kemarin</button>
-          <button class="qbtn on" onclick="setQ(this,'week')">7 Hari</button>
+          <button class="qbtn on" onclick="setQ(this,'yesterday')">Kemarin</button>
+          <button class="qbtn" onclick="setQ(this,'week')">7 Hari</button>
         </div>
         <span class="fnote" id="dp-scope">—</span>
       </div>
@@ -766,7 +766,10 @@ async function load(){
   const { dari, sampai } = baseRange();
   document.getElementById('f-dari').value   = dari;
   document.getElementById('f-sampai').value = sampai;
-  await setQ(document.querySelector('.qbtn.on'), 'week');
+  /* Tampilan awal: Kemarin. Yang DIMUAT tetap tujuh hari terakhir —
+     Kemarin ada di dalamnya, jadi berpindah ke Hari ini atau 7 Hari
+     tetap seketika tanpa permintaan baru. */
+  await setQ(document.querySelector('.qbtn.on'), 'yesterday');
 }
 
 /* BARIS 1 — menyaring, bukan mengambil.

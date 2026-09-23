@@ -31,7 +31,15 @@
   const QKEY      = 'mk_wq';        // antrian tulis
   const FKEY      = 'mk_wf';        // simpanan GAGAL (lihat di bawah)
   const MAX_FAIL  = 20;             // batas wajar, supaya tidak menumpuk
-  const HARD_TTL  = 24 * 3600e3;    // data basi masih dipakai s/d 24 jam
+  /* Selama masih di dalam batas ini, data lama tetap DITAMPILKAN
+     sambil versi barunya diambil di latar belakang. Dinaikkan dari 24
+     jam ke 7 hari khusus untuk sambungan yang lemah: kalau sudah lewat
+     batas, simpanan dibuang dan layar jadi kosong sampai jaringan
+     berhasil — justru di saat jaringannya paling tidak bisa
+     diandalkan. Nota minggu lalu jauh lebih berguna daripada tabel
+     kosong, dan keterangan di bilah status sudah memberi tahu bahwa
+     yang tampil adalah data tersimpan. */
+  const HARD_TTL  = 7 * 24 * 3600e3;
   const TIMEOUT   = 12000;          // 12 dtk — dipakai untuk TULIS
   /* Baca diberi waktu jauh lebih panjang. getAllNotas di Code.gs yang
      masih terpasang membaca SELURUH sheet Penjualan ditambah SELURUH
@@ -115,6 +123,24 @@
   const softTTL = action => MK_CACHE.TTL[action] || 120000;
 
   /* ─── fetch dengan timeout + retry ────────────────────── */
+  /* ─── Pembatas permintaan serentak ──────────────────────────
+     Di sambungan lemah, tiga permintaan yang berangkat bersamaan
+     sama-sama merayap: yang pertama baru selesai setelah ketiganya
+     hampir selesai. Dengan batas dua, data yang ditunggu halaman
+     sampai lebih cepat, dan Apps Script — yang juga membatasi jumlah
+     eksekusi bersamaan — tidak kewalahan.                        */
+  const MAX_PARALEL = 2;
+  let jalan = 0;
+  const antre = [];
+  function slot() {
+    if (jalan < MAX_PARALEL) { jalan++; return Promise.resolve(); }
+    return new Promise(r => antre.push(r));
+  }
+  function lepas() {
+    const next = antre.shift();
+    if (next) next(); else jalan = Math.max(0, jalan - 1);
+  }
+
   async function netGet(url, tries) {
     tries = (tries == null) ? RETRIES : tries;
     let lastErr;
@@ -128,6 +154,10 @@
          jadi hanya nilai false yang dipercaya.) */
       if (!navigator.onLine) { lastErr = new Error('Tidak ada sambungan'); break; }
 
+      // Giliran diambil DULU, baru jamnya mulai. Kalau dibalik,
+      // permintaan yang masih mengantre bisa kehabisan waktu sebelum
+      // sempat berangkat sama sekali.
+      await slot();
       const ctl = new AbortController();
       const t = setTimeout(() => ctl.abort(), READ_TIMEOUT);
       try {
@@ -139,7 +169,7 @@
         clearTimeout(t);
         lastErr = e;
         if (i < tries) await new Promise(r => setTimeout(r, 600 * Math.pow(2, i)));
-      }
+      } finally { lepas(); }
     }
     throw lastErr;
   }
@@ -251,6 +281,7 @@
     delete claimed[action];
 
     busyCount = Math.max(0, busyCount - 1);
+    if (!busyCount) busySince = 0;
     if (!err) lastSync = Date.now();
     renderBar();
 
@@ -391,6 +422,7 @@
     inflight[action] = p;
     p.catch(() => {});          // penolakan ditangani pemanggil; jangan bising di console
 
+    if (!busyCount) busySince = Date.now();
     busyCount++;                // dipakai bilah status di bawah layar
     renderBar();
 
@@ -627,6 +659,7 @@
      yang gagal itulah yang mewarnainya merah. */
   let haveData = false;
   let busyCount = 0;          // berapa action sedang diambil dari server
+  let busySince = 0;          // kapan pengambilan yang sekarang dimulai
   let saveCount = 0;          // berapa perubahan sedang DIKIRIM ke server
   let retrying  = false;      // kiriman ulang atas permintaan pengguna
   let lastSync  = 0;          // kapan terakhir kali data berhasil masuk
@@ -806,6 +839,7 @@
 
     bar.className = '';
     btn.disabled  = false;
+    if (!busyCount) clearTimeout(renderBar._tick);
 
     if (saveCount > 0) {
       // KUNING — perubahan sedang dikirim
@@ -833,11 +867,19 @@
       lbl.textContent = 'Coba lagi';
 
     } else if (busyCount > 0) {
-      // KUNING — sedang berjalan
+      /* KUNING — sedang berjalan.
+         Di sambungan lemah ini bisa bertahan puluhan detik. Tulisan
+         yang diam saja terlihat seperti aplikasi yang menggantung,
+         jadi detiknya ikut ditampilkan setelah 3 detik pertama —
+         cukup untuk membedakan "sedang jalan" dari "macet", tanpa
+         membuat pemuatan cepat jadi ramai. */
       bar.className = 'busy';
-      txt.textContent = 'Mengambil data...';
+      const dtk = busySince ? Math.floor((Date.now() - busySince) / 1000) : 0;
+      txt.textContent = dtk >= 3 ? `Mengambil data... (${dtk} dtk)` : 'Mengambil data...';
       btn.disabled = true;
       lbl.textContent = narrow ? '' : 'Memuat';
+      clearTimeout(renderBar._tick);
+      renderBar._tick = setTimeout(renderBar, 1000);
 
     } else if (!navigator.onLine) {
       /* Aturan warna: MERAH berarti tidak bisa bekerja. KUNING berarti
