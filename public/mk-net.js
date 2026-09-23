@@ -32,8 +32,17 @@
   const FKEY      = 'mk_wf';        // simpanan GAGAL (lihat di bawah)
   const MAX_FAIL  = 20;             // batas wajar, supaya tidak menumpuk
   const HARD_TTL  = 24 * 3600e3;    // data basi masih dipakai s/d 24 jam
-  const TIMEOUT   = 12000;          // 12 dtk per percobaan
-  const RETRIES   = 2;              // total 3 percobaan
+  const TIMEOUT   = 12000;          // 12 dtk — dipakai untuk TULIS
+  /* Baca diberi waktu jauh lebih panjang. getAllNotas di Code.gs yang
+     masih terpasang membaca SELURUH sheet Penjualan ditambah SELURUH
+     sheet Items, tanpa cache di sisi server — pada data sungguhan itu
+     lewat dari 12 detik. Dengan batas lama, permintaan itu tidak
+     pernah berhasil: diputus di detik 12, diulang, diputus lagi,
+     tiga kali, lalu menyerah setelah ~36 detik tanpa satu baris pun
+     tampil. Satu percobaan panjang lebih berguna daripada tiga
+     percobaan yang semuanya pasti kalah. */
+  const READ_TIMEOUT = 25000;
+  const RETRIES   = 1;              // total 2 percobaan
   const RETRY_WRITES = true;        // aman: Code.gs v2 sudah punya dedupe clientRef
 
   /* ─── Storage aman (localStorage → sessionStorage → memori) ── */
@@ -110,8 +119,17 @@
     tries = (tries == null) ? RETRIES : tries;
     let lastErr;
     for (let i = 0; i <= tries; i++) {
+      /* Kalau peramban sendiri bilang tidak ada jaringan, tidak ada
+         gunanya menunggu sampai batas waktu. Tanpa ini, membuka
+         halaman dalam keadaan offline berarti menatap "Mengambil
+         data..." selama hampir satu menit sebelum bilah status
+         akhirnya berkata jujur. (Sebaliknya tidak berlaku: onLine
+         yang bernilai true belum tentu berarti server terjangkau,
+         jadi hanya nilai false yang dipercaya.) */
+      if (!navigator.onLine) { lastErr = new Error('Tidak ada sambungan'); break; }
+
       const ctl = new AbortController();
-      const t = setTimeout(() => ctl.abort(), TIMEOUT);
+      const t = setTimeout(() => ctl.abort(), READ_TIMEOUT);
       try {
         const res = await window.fetch(url, { signal: ctl.signal, cache: 'no-store' });
         clearTimeout(t);
@@ -429,16 +447,17 @@
   MK_CACHE.fetch = async function (action, gasUrl) {
     const o   = readRaw(action);
     const now = Date.now();
+    const served = (d) => { haveData = true; renderBar(); return d; };
 
     // 1. Cache segar → langsung pakai
-    if (o && !o.dirty && (now - o.ts) <= softTTL(action)) return o.data;
+    if (o && !o.dirty && (now - o.ts) <= softTTL(action)) return served(o.data);
 
     // 2. Ada cache tapi kotor (habis nulis) → wajib tunggu server,
     //    kalau gagal baru mundur ke cache lama
     if (o && o.dirty) {
-      try { return await revalidate(action, gasUrl); }
+      try { return served(await revalidate(action, gasUrl)); }
       catch (e) {
-        if (now - o.ts <= HARD_TTL) { flagStale(); return o.data; }
+        if (now - o.ts <= HARD_TTL) { flagStale(); return served(o.data); }
         throw e;
       }
     }
@@ -447,11 +466,11 @@
     //    ambil versi baru di latar belakang
     if (o && (now - o.ts) <= HARD_TTL) {
       revalidate(action, gasUrl).catch(() => {});
-      return o.data;
+      return served(o.data);
     }
 
     // 4. Tidak ada cache sama sekali → harus tunggu jaringan
-    return await revalidate(action, gasUrl);
+    return served(await revalidate(action, gasUrl));
   };
 
   /* ─── Antrian tulis offline ───────────────────────────── */
@@ -599,6 +618,14 @@
      dikompensasi lewat padding-bottom pada <body>.             */
 
   let netOk = true, staleShown = false;
+  /* Apakah layar sedang memegang data yang bisa dipakai — entah baru
+     dari server, entah dari simpanan. Ini yang membedakan "gagal, dan
+     kamu tidak punya apa-apa" dari "gagal menyegarkan, tapi datanya
+     ada di layar". Tanpa pembedaan ini bilah status berwarna merah
+     padahal tabelnya penuh: MK_CACHE.fetch menampilkan simpanan lama
+     lebih dulu lalu menyegarkan di latar belakang, dan penyegaran
+     yang gagal itulah yang mewarnainya merah. */
+  let haveData = false;
   let busyCount = 0;          // berapa action sedang diambil dari server
   let saveCount = 0;          // berapa perubahan sedang DIKIRIM ke server
   let retrying  = false;      // kiriman ulang atas permintaan pengguna
@@ -813,19 +840,29 @@
       lbl.textContent = narrow ? '' : 'Memuat';
 
     } else if (!navigator.onLine) {
-      // MERAH — tidak ada jaringan sama sekali
-      bar.className = 'bad';
+      /* Aturan warna: MERAH berarti tidak bisa bekerja. KUNING berarti
+         bisa bekerja, tapi ada yang perlu diketahui. Jadi kalau data
+         masih terpampang di layar, tidak ada sambungan bukan keadaan
+         merah — orangnya masih bisa membaca notanya. */
+      bar.className = haveData ? 'busy' : 'bad';
       txt.textContent = n
         ? `Tidak ada sambungan — ${n} perubahan menunggu`
-        : 'Tidak ada sambungan — menampilkan data tersimpan';
+        : (haveData
+            ? 'Tidak ada sambungan — data tersimpan masih bisa dibaca'
+            : 'Tidak ada sambungan — belum ada data tersimpan');
       lbl.textContent = narrow ? '' : 'Coba lagi';
 
     } else if (!netOk) {
-      // MERAH — ada jaringan, tapi server tidak menjawab.
-      // Dibedakan dari kasus di atas supaya jelas mana yang harus
-      // diperiksa: sinyal, atau deployment Apps Script-nya.
-      bar.className = 'bad';
-      txt.textContent = 'Gagal mengambil data dari server';
+      /* Server tidak menjawab. Kalau tabelnya sudah terisi — dan itu
+         keadaan yang paling sering, karena MK_CACHE.fetch menampilkan
+         simpanan lama dulu lalu menyegarkan di latar — yang gagal
+         hanyalah PENYEGARANNYA. Dulu ini diwarnai merah dan berbunyi
+         "Gagal mengambil data dari server", padahal datanya ada di
+         depan mata. Itu membuat orang mengira aplikasinya rusak. */
+      bar.className = haveData ? 'busy' : 'bad';
+      txt.textContent = haveData
+        ? 'Data tersimpan · gagal memperbarui dari server'
+        : 'Gagal mengambil data dari server';
       lbl.textContent = narrow ? '' : 'Coba lagi';
 
     } else if (n) {
