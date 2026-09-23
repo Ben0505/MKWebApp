@@ -685,16 +685,30 @@ function normalizeNota(n) {
    hampir selalu cuma menampilkan beberapa hari terakhir, jadi
    sebagian besar muatan itu terbuang.
 
-   Sekarang: hanya rentang yang sedang dilihat yang diambil.
+   Yang dimuat dan yang ditampilkan dipisah:
+
+     BARIS 1 (Hari ini · Kemarin · 7 Hari) tidak pernah mengambil
+     data baru. Ketiganya berada DI DALAM tujuh hari terakhir yang
+     sudah ada di memori, jadi tombol-tombol itu hanya mengubah
+     bagian mana yang ditampilkan. Berpindah di antara ketiganya
+     seketika, tanpa menyentuh jaringan.
+
+     BARIS 2 (bulan/tahun atau rentang tanggal) mengambil data —
+     tapi hanya saat tombol "Cari" ditekan.
+
+     Menekan baris 1 lagi setelah itu mengembalikan jendela tujuh
+     hari. Biasanya tidak perlu ke server karena masih tersimpan.
 
    Kalau Code.gs di server BELUM dideploy ulang, ia tidak mengenal
-   getNotasRange dan menjawab dengan pesan status biasa. Itu dikenali,
-   lalu halaman mundur ke getAllNotas dan menyaring di browser —
-   persis perilaku lama. Jadi berkas ini aman dipasang lebih dulu,
-   hanya saja belum ada keuntungan kecepatannya.
+   getNotasRange dan menjawab dengan pesan status biasa. Itu
+   dikenali, lalu halaman mundur ke getAllNotas dan menyaring di
+   browser — persis perilaku lama.
    ============================================================ */
-let RANGE    = { dari:'', sampai:'' };   // jendela yang sedang dimuat
-let ALL_MODE = false;                    // true = seluruh riwayat ada di memori
+let BASE     = [];                      // tujuh hari terakhir, disimpan utuh
+let MODE     = 'base';                  // 'base' | 'range' | 'all'
+let VIEW     = { dari:'', sampai:'' };  // yang SEDANG ditampilkan
+let ALL_MODE = false;                   // seluruh riwayat ada di memori
+let NO_RANGE = false;                   // backend belum kenal getNotasRange
 
 function rangeAction(dari, sampai){
   return `getNotasRange&dari=${dari}&sampai=${sampai}`;
@@ -705,81 +719,90 @@ function setScope(txt){
   if (el) el.textContent = txt;
 }
 
-async function loadRange(dari, sampai, label){
-  RANGE = { dari, sampai };
+function baseRange(){
+  const sampai = jakartaDate();
+  const d = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));
+  d.setDate(d.getDate() - 6);
+  const dari = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return { dari, sampai };
+}
 
-  // Sudah punya semuanya di memori → tidak perlu ke server lagi.
-  if (ALL_MODE) { setScope(label || `${fd(dari)} — ${fd(sampai)}`); go2(); return; }
+function presetRange(preset){
+  const sampai = jakartaDate();
+  if (preset === 'today')     return { dari: sampai, sampai };
+  if (preset === 'yesterday') return { dari: jakartaDate(-1), sampai: jakartaDate(-1) };
+  return baseRange();                                   // 'week'
+}
 
+/* Ambil (atau pakai ulang) jendela tujuh hari. */
+async function loadBase(){
+  if (MODE === 'base' && BASE.length) { ALL = BASE; return; }
+  if (NO_RANGE || ALL_MODE) { MODE = 'base'; return; }   // semuanya sudah di memori
+
+  const { dari, sampai } = baseRange();
   MK_LOADER.show('Memuat data...');
   try {
     const d = await MK_CACHE.fetch(rangeAction(dari, sampai), GAS);
-    if (d && d.success) {
-      ALL = (d.notas || []).map(normalizeNota);
-      setScope(label || `${fd(dari)} — ${fd(sampai)}`);
-    } else {
-      await loadSemua(label);          // backend lama
-    }
+    if (d && d.success) { BASE = (d.notas || []).map(normalizeNota); ALL = BASE; MODE = 'base'; }
+    else { await loadSemua(); }                          // backend lama
   } catch(e) {
-    try { await loadSemua(label); } catch(e2) { ALL = []; }
+    try { await loadSemua(); } catch(e2) { ALL = []; }
   } finally { MK_LOADER.hide(); }
-
-  go2();
 }
 
 /* Ambil SELURUH riwayat. Dipakai untuk dua hal: backend yang belum
    mengenal getNotasRange, dan tombol "cari di semua data". */
-async function loadSemua(label){
+async function loadSemua(){
   const d = await MK_CACHE.fetch('getAllNotas', GAS);
   ALL = d && d.success ? d.notas.map(normalizeNota) : [];
-  ALL_MODE = true;
-  setScope(label ? label + ' · semua data' : 'semua data');
+  BASE = ALL; ALL_MODE = true; NO_RANGE = true; MODE = 'base';
 }
 
 async function cariSemua(){
   MK_LOADER.show('Mencari di semua data...');
-  try { await loadSemua('Semua riwayat'); } catch(e) {}
+  try { await loadSemua(); } catch(e) {}
   finally { MK_LOADER.hide(); }
-  RANGE = { dari:'', sampai:'' };
-  document.getElementById('f-dari').value = '';
-  document.getElementById('f-sampai').value = '';
+  MODE = 'all';
+  VIEW = { dari:'', sampai:'' };
   document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('on'));
+  setScope('Semua riwayat');
   go2();
 }
 
 async function load(){
   populateYears();
+  const { dari, sampai } = baseRange();
+  document.getElementById('f-dari').value   = dari;
+  document.getElementById('f-sampai').value = sampai;
   await setQ(document.querySelector('.qbtn.on'), 'week');
 }
 
-function presetRange(preset){
-  let sampai = jakartaDate(), dari = sampai;
-  if (preset === 'today')          { dari = sampai; }
-  else if (preset === 'yesterday') { dari = jakartaDate(-1); sampai = jakartaDate(-1); }
-  else if (preset === 'week')      {
-    const d = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jakarta'}));
-    d.setDate(d.getDate() - 6);
-    dari = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  }
-  return { dari, sampai };
-}
-
+/* BARIS 1 — menyaring, bukan mengambil.
+   Satu-satunya saat ini menyentuh jaringan adalah kalau data yang
+   ada di memori bukan lagi jendela tujuh hari (karena sebelumnya
+   dipakai untuk mencari bulan lain). */
 async function setQ(btn, preset){
   document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('on'));
   if (btn) btn.classList.add('on');
-  const sb = document.getElementById('sel-bulan'); if (sb) sb.value = '';
 
-  const { dari, sampai } = presetRange(preset);
-  document.getElementById('f-dari').value   = dari;
-  document.getElementById('f-sampai').value = sampai;
+  /* Selalu dipanggil — loadBase() sendiri yang memutuskan perlu ke
+     server atau tidak. Kalau dijaga dengan `if (MODE !== 'base')`,
+     pemuatan PERTAMA terlewat: MODE memang sudah 'base' sejak awal,
+     padahal datanya belum ada. */
+  await loadBase();
 
+  VIEW = presetRange(preset);
   const LBL = { today:'Hari ini', yesterday:'Kemarin', week:'7 hari terakhir' };
-  await loadRange(dari, sampai, LBL[preset]);
+  // "7 hari terakhir · dari 7 hari terakhir" — keterangan asalnya hanya
+  // berguna untuk pilihan yang lebih sempit dari jendela itu sendiri.
+  setScope(LBL[preset] + (preset === 'week' || ALL_MODE ? '' : ' · dari 7 hari terakhir'));
+  go2();
 }
 
-/* Tombol "Cari" pada baris kedua. Sengaja TIDAK otomatis jalan saat
-   pemilih tanggal diubah: mengubah tanggal itu beberapa ketukan, dan
-   tiap ketukan akan jadi satu permintaan ke server. */
+/* BARIS 2 — satu-satunya tombol yang mengambil data baru.
+   Sengaja TIDAK otomatis jalan saat pemilih tanggal diubah:
+   mengubah tanggal itu beberapa ketukan, dan tiap ketukan akan
+   jadi satu permintaan ke server. */
 async function cariRentang(){
   const bulan = +document.getElementById('sel-bulan').value;
   const tahun = +document.getElementById('sel-tahun').value;
@@ -797,12 +820,30 @@ async function cariRentang(){
     sampai = document.getElementById('f-sampai').value;
     if (!dari || !sampai) { showToast('⚠ Pilih bulan/tahun, atau isi tanggal Dari dan Sampai', false); return; }
     if (dari > sampai)    { showToast('⚠ Tanggal "Dari" melewati "Sampai"', false); return; }
+    label = `${fd(dari)} — ${fd(sampai)}`;
   }
 
   document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('on'));
   const btn = document.getElementById('btn-cari');
   btn.disabled = true;
-  try { await loadRange(dari, sampai, label); } finally { btn.disabled = false; }
+
+  if (!NO_RANGE && !ALL_MODE) {
+    MK_LOADER.show('Memuat data...');
+    try {
+      const d = await MK_CACHE.fetch(rangeAction(dari, sampai), GAS);
+      if (d && d.success) { ALL = (d.notas || []).map(normalizeNota); MODE = 'range'; }
+      else { await loadSemua(); MODE = 'range'; }
+    } catch(e) {
+      try { await loadSemua(); MODE = 'range'; } catch(e2) { ALL = []; }
+    } finally { MK_LOADER.hide(); btn.disabled = false; }
+  } else {
+    MODE = 'range';                       // semuanya sudah di memori
+    btn.disabled = false;
+  }
+
+  VIEW = { dari, sampai };
+  setScope(label);
+  go2();
 }
 
 /* Daftar tahun tidak lagi bisa disimpulkan dari data yang dimuat,
@@ -819,8 +860,13 @@ function populateYears() {
 }
 
 function go2(){
-  const dari=document.getElementById('f-dari').value;
-  const sampai=document.getElementById('f-sampai').value;
+  /* Batas tanggal diambil dari VIEW, bukan dari kotak tanggal di
+     baris 2. Kalau dari kotak itu, baris 1 dan baris 2 akan saling
+     menimpa: menekan "Hari ini" akan menghapus tanggal yang baru
+     diketik untuk pencarian, dan sebaliknya. Kotak tanggal itu isian
+     untuk pencarian BERIKUTNYA; VIEW adalah yang sedang tampil. */
+  const dari=VIEW.dari;
+  const sampai=VIEW.sampai;
   const q=document.getElementById('f-q').value.toLowerCase().trim();
   const st=document.getElementById('f-st').value;
 
@@ -1181,8 +1227,11 @@ async function saveEditNota(){
   closeM();
   go2();
   MK_CACHE.bust('getAllNotas');
-  // Jendela yang sedang dilihat punya kunci cache sendiri.
-  if (RANGE.dari) MK_CACHE.bust(rangeAction(RANGE.dari, RANGE.sampai));
+  // Jendela tujuh hari dan jendela pencarian punya kunci sendiri.
+  const b = baseRange();
+  MK_CACHE.bust(rangeAction(b.dari, b.sampai));
+  if (VIEW.dari && MODE === 'range') MK_CACHE.bust(rangeAction(VIEW.dari, VIEW.sampai));
+  BASE = [];
   MK_CACHE.bust('getTodayNotas');
   MK_CACHE.bust('getPelanggan');
   try{
@@ -1218,8 +1267,10 @@ function fdPrint(d){return d?new Date(d).toLocaleDateString('id-ID',{day:'2-digi
 
 /* ── Print Harian ── */
 function printHarian(){
-  const dari   = document.getElementById('f-dari').value;
-  const sampai = document.getElementById('f-sampai').value;
+  // Judul cetakan harus menyebut yang SEDANG tampil, bukan isian
+  // pencarian berikutnya.
+  const dari   = VIEW.dari;
+  const sampai = VIEW.sampai;
 
   let tglLabel = '';
   if(dari && sampai && dari===sampai) tglLabel = fdPrint(dari);
