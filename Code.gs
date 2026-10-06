@@ -1297,9 +1297,92 @@ function handleUpdateNota(p) {
     ]]);
 
     _setStatusColor(shJ, i+1, 14, p.status || String(data[i][11]));
+
+    /* Item Penjualan. Versi sebelumnya berhenti di atas: baris nota
+       di Data Penjualan berubah, tapi rincian barangnya di Item
+       Penjualan tetap yang lama. Akibatnya subtotal di satu sheet
+       tidak lagi cocok dengan jumlah barang di sheet lainnya.
+
+       Hanya dijalankan kalau pemanggil memang mengirim daftar barang
+       (berupa array). Pemanggil yang hanya mengubah status atau
+       catatan tidak boleh ikut menghapus rincian barangnya. */
+    if (Array.isArray(p.items)) {
+      _replaceNotaItems(String(data[i][0]), data[i][2], tanggal,
+                        p.nama || data[i][3], p.items);
+    }
+
     return _json({ success: true, total });
   }
   return _json({ success: false, error: 'Nota tidak ditemukan.' });
+}
+
+/**
+ * Ganti seluruh rincian barang sebuah nota di sheet Item Penjualan.
+ *
+ * Kolom: idNota | noNota | tanggal | nama | produk | satuan | qty | harga | jumlah
+ *        (sama persis dengan yang ditulis handleSaveNota)
+ *
+ * Ditulis ulang DI TEMPAT, bukan dihapus lalu ditambahkan di bawah.
+ * Kalau ditambahkan di bawah, mengedit nota lama memindahkan barangnya
+ * ke dasar sheet: barang satu nota jadi tercerai, dan pembacaan per
+ * rentang tanggal terpaksa membaca hampir seluruh sheet.
+ *
+ * Tanggal dan nama pelanggan ikut ditulis ulang di setiap baris,
+ * karena keduanya disalin ke sini — mengubah tanggal nota saja pun
+ * harus ikut mengubah baris-baris ini.
+ */
+function _replaceNotaItems(idNota, noNota, tanggal, nama, items) {
+  const sh = SS.getSheetByName(SH_ITEMS);
+
+  // Dua halaman mengirim bentuk yang berbeda: input-penjualan memakai
+  // {produk,...}, data-penjualan memakai {nama,...}. Terima keduanya.
+  const rows = [];
+  for (let k = 0; k < items.length; k++) {
+    const it = items[k] || {};
+    const produk = String(it.produk || it.nama || '').trim();
+    if (!produk) continue;
+    const qty   = +it.qty   || 0;
+    const harga = +it.harga || 0;
+    rows.push([idNota, noNota, tanggal, nama || '', produk, it.satuan || '', qty, harga, qty * harga]);
+  }
+
+  // Baris lama milik nota ini — cukup baca kolom id.
+  const last = sh.getLastRow();
+  const old  = [];
+  if (last > 1) {
+    const ids = sh.getRange(2, 1, last - 1, 1).getValues();
+    for (let k = 0; k < ids.length; k++) {
+      if (String(ids[k][0]) === idNota) old.push(k + 2);
+    }
+  }
+
+  // Belum punya baris sama sekali → tambahkan di bawah, seperti nota baru.
+  if (!old.length) {
+    if (rows.length) sh.getRange(last + 1, 1, rows.length, 9).setValues(rows);
+    return;
+  }
+
+  // Seharusnya selalu bersebelahan (handleSaveNota menulisnya sekaligus).
+  // Kalau ternyata tidak, rapikan dulu: sisakan baris pertama saja.
+  for (let k = old.length - 1; k >= 1; k--) {
+    if (old[k] !== old[k - 1] + 1) {
+      for (let j = old.length - 1; j >= 1; j--) sh.deleteRow(old[j]);
+      old.length = 1;
+      break;
+    }
+  }
+
+  const first = old[0], had = old.length, want = rows.length;
+  if (want > had) sh.insertRowsAfter(first + had - 1, want - had);
+  if (want > 0)   sh.getRange(first, 1, want, 9).setValues(rows);
+  if (want < had) {
+    try { sh.deleteRows(first + want, had - want); }
+    catch (e) {
+      // Sheets menolak menghapus SEMUA baris yang tidak dibekukan. Baris
+      // kosong aman: pembaca melewati baris yang idNota-nya kosong.
+      sh.getRange(first + want, 1, had - want, 9).clearContent();
+    }
+  }
 }
 
 // ============================================================
