@@ -167,26 +167,51 @@ input::placeholder{color:var(--text-3);}
 .chart-grid{grid-template-columns:1fr 1fr;}
 @media(max-width:767px){.chart-grid{grid-template-columns:1fr!important;}}
 
-/* ── Rekap pelanggan × produk ───────────────────────────────── */
-.rk-sec{padding:14px 18px 4px;}
-.rk-sec + .rk-sec{padding-top:6px;}
+/* ── Rekap pelanggan × produk ─────────────────────────────────
+   Kolom data sama lebar (table-layout:fixed): lebar tabel dibagi rata,
+   dengan batas bawah dan atas per kolom. Di layar lebar tabel mengisi
+   ruang tanpa jadi renggang; di layar sempit kolom mengecil sampai
+   batas bawahnya, baru sesudah itu tabel digeser di dalam kotaknya.
+   Angka memakai huruf biasa dengan digit selebar sama — jauh lebih
+   hemat tempat daripada huruf mono, tapi tetap rata kanan dan sejajar. */
+#d-rekap{--rk-no:30px;--rk-nm:150px;--rk-min:56px;--rk-max:104px;--rk-fs:12px;--rk-pad:4px 7px;}
+@media(max-width:1180px){#d-rekap{--rk-nm:128px;--rk-min:50px;--rk-fs:11.5px;}}
+@media(max-width:600px){#d-rekap{--rk-no:24px;--rk-nm:88px;--rk-min:46px;--rk-fs:11px;--rk-pad:3px 4px;}}
+.rk-sec{padding:12px 16px 2px;}
 .rk-cap{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);color:var(--text-2);margin-bottom:6px;}
-.rk-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:12px;}
-table.rk{border-collapse:separate;border-spacing:0;font-size:12.5px;width:max-content;min-width:100%;}
-.rk th,.rk td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px 9px;white-space:nowrap;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;}
+.rk-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:10px;}
+/* Bingkai ada di tabel, bukan di kotak geser: kalau tabel lebih sempit
+   dari layar (kolom sudah di batas atas), bingkainya berhenti di ujung
+   tabel dan tidak menyisakan jalur kosong di kanan. */
+table.rk{border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:var(--rk-fs);
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  --rk-col:max(var(--rk-min), var(--rk-need, 0px));
+  width:min(100%, calc(var(--rk-no) + var(--rk-nm) + var(--n) * max(var(--rk-max), var(--rk-col))));
+  min-width:calc(var(--rk-no) + var(--rk-nm) + var(--n) * var(--rk-col));}
+.rk col.c-no{width:var(--rk-no);} .rk col.c-nm{width:var(--rk-nm);}
+.rk th,.rk td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:var(--rk-pad);
+  text-align:right;font-family:var(--sans);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rk tr > :last-child{border-right:none;}
-.rk thead th{background:var(--surface2);font-size:11.5px;font-weight:600;color:var(--text);text-align:center;}
-.rk thead th.kat{font-family:var(--sans);letter-spacing:.04em;text-transform:uppercase;}
-.rk thead tr.tot th{background:var(--surface);font-weight:600;text-align:right;}
-.rk thead tr.tot th.lbl{text-align:right;color:var(--text-2);font-family:var(--sans);font-size:11.5px;}
-.rk .no{position:sticky;left:0;z-index:2;width:34px;min-width:34px;max-width:34px;text-align:center;background:var(--surface);color:var(--text-3);}
-.rk .nm{position:sticky;left:34px;z-index:2;text-align:left;background:var(--surface);font-family:var(--sans);font-weight:600;color:var(--text);
-  min-width:120px;max-width:190px;overflow:hidden;text-overflow:ellipsis;box-shadow:1px 0 0 var(--border);}
+.rk thead th{background:var(--surface2);font-size:.92em;font-weight:600;color:var(--text);text-align:center;
+  white-space:normal;overflow-wrap:anywhere;line-height:1.2;}
+.rk thead th.kat{letter-spacing:.03em;text-transform:uppercase;}
+.rk thead th.kat .unit{font-weight:400;text-transform:none;}
+.rk thead tr.tot th{background:var(--surface);font-weight:600;text-align:right;white-space:nowrap;overflow-wrap:normal;}
+.rk thead tr.tot th.lbl{color:var(--text-2);font-size:.88em;letter-spacing:.02em;}
+.rk .no{position:sticky;left:0;z-index:2;text-align:center;background:var(--surface);color:var(--text-3);padding-left:0;padding-right:0;}
+.rk .nm{position:sticky;left:var(--rk-no);z-index:2;text-align:left;background:var(--surface);font-weight:600;color:var(--text);
+  box-shadow:1px 0 0 var(--border);}
 .rk thead .no,.rk thead .nm{background:var(--surface2);z-index:3;}
 .rk thead tr.tot .no,.rk thead tr.tot .nm{background:var(--surface);}
 .rk td.e{background:#ECE9E4;}
 .rk td.sum{font-weight:700;background:var(--surface);}
-.rk-note{padding:0 18px 14px;font-size:11.5px;color:var(--text-3);line-height:1.5;}
+.rk .ks{display:none;}
+@media(max-width:600px){
+  .rk-sec{padding:10px 10px 2px;}
+  .rk th.k1 .kf{display:none;} .rk th.k1 .ks{display:inline;}   /* kategori satu kolom: label pendek */
+  .rk thead tr.tot th.lbl{font-size:.82em;}
+}
+.rk-note{padding:0 16px 12px;font-size:11.5px;color:var(--text-3);line-height:1.5;}
 @media print{.rk-scroll{overflow:visible;border:none;}}
 </style>
 
@@ -713,6 +738,22 @@ const RK_TINT = { makaroni:'#DCEFE2', lago:'#FCE4D1', cipir:'#F7D5D4', stik:'#FB
 const RK_HEAD = { makaroni:'#B9DFC4', lago:'#F6CBA8', cipir:'#EFB2B0', stik:'#F5DF8C',
                   mateng:'#D8D1F2', kerupuk:'#E3D5B6' };
 const rkKey = k => String(k || 'Lainnya').trim().toLowerCase();
+/* Label pendek untuk kepala kategori yang hanya selebar satu kolom di HP:
+   alias produknya kalau kategori itu cuma punya satu produk beralias
+   pendek (MKR), selain itu empat huruf pertama. Nama lengkap tetap ada
+   di title, jadi muncul saat disentuh atau ditunjuk. */
+function rkShort(K) {
+  if (K.label.length <= 6) return K.label.toUpperCase();      // CIPIR, LAGO, STIK: sudah pendek
+  if (K.prods.length === 1) {
+    const p = PRODUK.find(x => x.nama === K.prods[0]);
+    const al = p && String(p.alias || '').trim();
+    if (al && al.length <= 5) return al.toUpperCase();
+  }
+  return K.label.replace(/\s+/g, '').slice(0, 4).toUpperCase();
+}
+const rkKatLbl = (K, one, extra = '') => one
+  ? `<span class="kf">${rkEsc(K.label)}${extra}</span><span class="ks">${rkEsc(rkShort(K))}</span>`
+  : `${rkEsc(K.label)}${extra}`;
 const rkNum = (v, dec=0) => (+v || 0).toLocaleString('id-ID', { maximumFractionDigits: dec });
 const rkEsc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -787,10 +828,11 @@ function renderRekap(layout, notas, periodLbl) {
     : { K, cols: K.cols });
   const anyKg = katList.some(K => K.weighed);
   const aHead1 = A.map(({ K, cols }) => cols.length === 1 && cols[0].kg
-      ? `<th class="kat" rowspan="2"${head(K.key)}>${rkEsc(K.label)}</th>`
-      : `<th class="kat" colspan="${cols.length}"${head(K.key)}>${rkEsc(K.label)} <span style="font-weight:400;text-transform:none">(unit)</span></th>`).join('')
+      ? `<th class="kat k1" rowspan="2" title="${rkEsc(K.label)} (kg)"${head(K.key)}>${rkKatLbl(K, true)}</th>`
+      : `<th class="kat${cols.length === 1 ? ' k1' : ''}" colspan="${cols.length}" title="${rkEsc(K.label)} (unit)"${head(K.key)}>${rkKatLbl(K, cols.length === 1, ' <span class="unit">(unit)</span>')}</th>`).join('')
     + (anyKg ? '<th class="kat" rowspan="2">Total KG</th>' : '');
-  const aHead2 = A.flatMap(({ K, cols }) => cols.length === 1 && cols[0].kg ? [] : cols.map(c => `<th>${rkEsc(c.label)}</th>`)).join('');
+  const nA = A.reduce((s, x) => s + x.cols.length, 0) + (anyKg ? 1 : 0);
+  const aHead2 = A.flatMap(({ K, cols }) => cols.length === 1 && cols[0].kg ? [] : cols.map(c => `<th title="${rkEsc(c.label)}">${rkEsc(c.label)}</th>`)).join('');
   const aTotKg = A.flatMap(({ K, cols }) => cols.map(c => c.kg ? `<th>${rkNum(sumKg(K.key), 1)}</th>` : `<th>${rkNum(sumCol(c.id))}</th>`)).join('')
     + (anyKg ? `<th>${rkNum(katList.reduce((s, K) => s + (K.weighed ? sumKg(K.key) : 0), 0), 1)}</th>` : '');
   const aTotTon = A.flatMap(({ K, cols }) => cols.map(c => c.kg ? `<th>${rkNum(sumKg(K.key) / 1000, 2)}</th>` : '<th></th>')).join('')
@@ -802,8 +844,9 @@ function renderRekap(layout, notas, periodLbl) {
     + '</tr>').join('');
 
   // ── Blok 2: unit ──
-  const bHead1 = katList.map(K => `<th class="kat" colspan="${K.cols.length}"${head(K.key)}>${rkEsc(K.label)}</th>`).join('');
-  const bHead2 = katList.flatMap(K => K.cols.map(c => `<th>${rkEsc(c.label)}</th>`)).join('');
+  const bHead1 = katList.map(K => `<th class="kat${K.cols.length === 1 ? ' k1' : ''}" colspan="${K.cols.length}" title="${rkEsc(K.label)}"${head(K.key)}>${rkKatLbl(K, K.cols.length === 1)}</th>`).join('');
+  const nB = katList.reduce((s, K) => s + K.cols.length, 0);
+  const bHead2 = katList.flatMap(K => K.cols.map(c => `<th title="${rkEsc(c.label)}">${rkEsc(c.label)}</th>`)).join('');
   const bUnit  = katList.flatMap(K => K.cols.map(c => `<th>${rkNum(sumCol(c.id))}</th>`)).join('');
   const bKg    = katList.flatMap(K => K.cols.map(c => `<th>${c.berat ? rkNum(sumCol(c.id) * c.berat, 1) : ''}</th>`)).join('');
   const bKatKg = katList.map(K => `<th colspan="${K.cols.length}">${K.weighed ? rkNum(sumKg(K.key), 1) : ''}</th>`).join('');
@@ -813,10 +856,11 @@ function renderRekap(layout, notas, periodLbl) {
   const fix = (a, b) => `<th class="no"${a}>${b}</th>`;
   el.innerHTML = `
     <div class="rk-sec"><div class="rk-cap">Total berat per pelanggan</div>
-      <div class="rk-scroll"><table class="rk mk-keep-table">
+      <div class="rk-scroll"><table class="rk mk-keep-table" style="--n:${nA}">
+        <colgroup><col class="c-no"><col class="c-nm">${'<col>'.repeat(nA)}</colgroup>
         <thead>
           ${anyKg ? `<tr class="tot">${fix('', '')}<th class="nm lbl">TON :</th>${aTotTon}</tr>` : ''}
-          <tr class="tot">${fix('', '')}<th class="nm lbl">${anyKg ? 'KG / UNIT :' : 'UNIT :'}</th>${aTotKg}</tr>
+          <tr class="tot">${fix('', '')}<th class="nm lbl" title="Kilogram, atau unit untuk kategori tanpa berat">${anyKg ? 'KG/UNIT :' : 'UNIT :'}</th>${aTotKg}</tr>
           <tr>${fix(' rowspan="2"', 'No.')}<th class="nm" rowspan="2">Nama</th>${aHead1}</tr>
           <tr>${aHead2}</tr>
         </thead>
@@ -824,7 +868,8 @@ function renderRekap(layout, notas, periodLbl) {
       </table></div>
     </div>
     <div class="rk-sec"><div class="rk-cap">Unit per pelanggan</div>
-      <div class="rk-scroll"><table class="rk mk-keep-table">
+      <div class="rk-scroll"><table class="rk mk-keep-table" style="--n:${nB}">
+        <colgroup><col class="c-no"><col class="c-nm">${'<col>'.repeat(nB)}</colgroup>
         <thead>
           <tr class="tot">${fix('', '')}<th class="nm lbl">TOTAL KG :</th>${bKatKg}</tr>
           <tr class="tot">${fix('', '')}<th class="nm lbl">KG :</th>${bKg}</tr>
@@ -838,6 +883,20 @@ function renderRekap(layout, notas, periodLbl) {
     ${katList.some(K => !K.weighed && K.key !== 'lainnya') ? `<div class="rk-note">Kategori tanpa berat per satuan (${
       katList.filter(K => !K.weighed && K.key !== 'lainnya').map(K => rkEsc(K.label)).join(', ')
     }) dihitung dalam unit. Isi kolom berat di halaman Produk agar ikut dijumlahkan dalam KG.</div>` : ''}`;
+
+  /* Batas bawah lebar kolom diambil dari angka terpanjang di tabel itu
+     sendiri. Batas tetap cepat atau lambat memotong angka — total sebulan
+     bisa "123.456" — dan angka yang terpotong lebih buruk daripada tabel
+     yang harus digeser. Digit di sini selebar 1ch (tabular-nums), jadi
+     panjang teks dalam ch ditambah padding sudah cukup; titik dan koma
+     lebih sempit dari digit, jadi perkiraannya selalu sedikit berlebih. */
+  el.querySelectorAll('table.rk').forEach(t => {
+    let len = 0;
+    t.querySelectorAll('td:not(.no):not(.nm), thead tr.tot th:not(.no):not(.nm)').forEach(c => {
+      if (c.colSpan === 1) len = Math.max(len, c.textContent.trim().length);
+    });
+    t.style.setProperty('--rk-need', `calc(${len + 1}ch + 10px)`);
+  });
 }
 
 /* ── Parse items ── */
