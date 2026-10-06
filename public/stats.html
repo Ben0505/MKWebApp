@@ -166,6 +166,28 @@ input::placeholder{color:var(--text-3);}
 }
 .chart-grid{grid-template-columns:1fr 1fr;}
 @media(max-width:767px){.chart-grid{grid-template-columns:1fr!important;}}
+
+/* ── Rekap pelanggan × produk ───────────────────────────────── */
+.rk-sec{padding:14px 18px 4px;}
+.rk-sec + .rk-sec{padding-top:6px;}
+.rk-cap{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);color:var(--text-2);margin-bottom:6px;}
+.rk-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:12px;}
+table.rk{border-collapse:separate;border-spacing:0;font-size:12.5px;width:max-content;min-width:100%;}
+.rk th,.rk td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px 9px;white-space:nowrap;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;}
+.rk tr > :last-child{border-right:none;}
+.rk thead th{background:var(--surface2);font-size:11.5px;font-weight:600;color:var(--text);text-align:center;}
+.rk thead th.kat{font-family:var(--sans);letter-spacing:.04em;text-transform:uppercase;}
+.rk thead tr.tot th{background:var(--surface);font-weight:600;text-align:right;}
+.rk thead tr.tot th.lbl{text-align:right;color:var(--text-2);font-family:var(--sans);font-size:11.5px;}
+.rk .no{position:sticky;left:0;z-index:2;width:34px;min-width:34px;max-width:34px;text-align:center;background:var(--surface);color:var(--text-3);}
+.rk .nm{position:sticky;left:34px;z-index:2;text-align:left;background:var(--surface);font-family:var(--sans);font-weight:600;color:var(--text);
+  min-width:120px;max-width:190px;overflow:hidden;text-overflow:ellipsis;box-shadow:1px 0 0 var(--border);}
+.rk thead .no,.rk thead .nm{background:var(--surface2);z-index:3;}
+.rk thead tr.tot .no,.rk thead tr.tot .nm{background:var(--surface);}
+.rk td.e{background:#ECE9E4;}
+.rk td.sum{font-weight:700;background:var(--surface);}
+.rk-note{padding:0 18px 14px;font-size:11.5px;color:var(--text-3);line-height:1.5;}
+@media print{.rk-scroll{overflow:visible;border:none;}}
 </style>
 
 <script src="mk-config.js"></script>
@@ -275,6 +297,12 @@ input::placeholder{color:var(--text-3);}
       <div class="card">
         <div class="card-hd"><h2>Pengambilan Per Pelanggan</h2><span class="meta" id="d-plg-bk-meta">detail per nota</span></div>
         <div class="card-body" id="d-plg-breakdown"><div class="empty-state">Tidak ada data</div></div>
+      </div>
+
+      <!-- Rekap pelanggan × produk (meniru lembar rekap harian di sheet) -->
+      <div class="card">
+        <div class="card-hd"><h2>Rekap Pelanggan × Produk</h2><span class="meta" id="d-rekap-meta">—</span></div>
+        <div id="d-rekap"><div class="empty-state">Tidak ada data</div></div>
       </div>
 
     </div>
@@ -462,6 +490,7 @@ function compute(layout) {
   renderPerBarang(layout, katData, prodData);
   renderTopPelanggan(layout, plgData);
   renderPlgBreakdown(layout, notas);
+  renderRekap(layout, notas, periodLbl);
 }
 
 function renderSummary(layout, omset, nota, unit, kg, period) {
@@ -652,6 +681,163 @@ function renderPlgBreakdown(layout, notas) {
       <div>${notaList}</div>
     </div>`;
   }).join('');
+}
+
+/* ============================================================
+   Rekap pelanggan × produk
+   ------------------------------------------------------------
+   Meniru lembar rekap harian di sheet: satu baris per pelanggan,
+   kolom dikelompokkan per kategori, dalam dua blok.
+
+   1. BERAT — kilogram per kategori (qty × berat satuan). Kategori
+      yang satuannya tidak punya berat (mis. kerupuk yang dihitung
+      per ikat) ditampilkan dalam unit per produk, seperti blok IKAT.
+   2. UNIT — jumlah per satuan di tiap kategori.
+
+   Sub-kolom tiap kategori:
+     · kategori dengan SATU produk  → per satuan   (1/4, 5 KG, SAK…)
+     · kategori dengan BANYAK produk → per produk  (JB, BK, KJ… memakai
+       alias), ditambah satuannya kalau produk itu punya lebih dari satu.
+   Tabel diberi kelas mk-keep-table: lapisan responsif mengubah setiap
+   tabel jadi tumpukan kartu di HP, dan untuk tabel silang seperti ini
+   itu merusak semuanya — baris total ikut masuk ke kartu tiap
+   pelanggan dan tidak ada lagi yang bisa dibaca menyamping.
+
+   Ditentukan dari daftar produk, bukan dari penjualan hari itu, supaya
+   judul kolom tidak berubah-ubah antar hari. Yang ditampilkan hanya
+   kolom yang ada penjualannya di periode ini.
+   ============================================================ */
+const RK_KAT_ORDER = ['makaroni','lago','cipir','stik','mateng','kerupuk'];
+const RK_TINT = { makaroni:'#DCEFE2', lago:'#FCE4D1', cipir:'#F7D5D4', stik:'#FBF0C4',
+                  mateng:'#ECE8F8', kerupuk:'#F1EADB' };
+const RK_HEAD = { makaroni:'#B9DFC4', lago:'#F6CBA8', cipir:'#EFB2B0', stik:'#F5DF8C',
+                  mateng:'#D8D1F2', kerupuk:'#E3D5B6' };
+const rkKey = k => String(k || 'Lainnya').trim().toLowerCase();
+const rkNum = (v, dec=0) => (+v || 0).toLocaleString('id-ID', { maximumFractionDigits: dec });
+const rkEsc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function renderRekap(layout, notas, periodLbl) {
+  const el   = document.getElementById(layout + '-rekap');
+  const meta = document.getElementById(layout + '-rekap-meta');
+  if (!el) return;
+  if (meta) meta.textContent = periodLbl || '—';
+  if (!notas.length) { el.innerHTML = '<div class="empty-state">Tidak ada data</div>'; return; }
+
+  // ── Katalog: kategori → produk, urutan, berat ──
+  const prodByName = {}, kat = {};
+  PRODUK.forEach((p, pi) => {
+    prodByName[p.nama] = p;
+    const k = rkKey(p.kategori);
+    if (!kat[k]) kat[k] = { key:k, label:(p.kategori || 'Lainnya').trim(), prods:[], weighed:false };
+    kat[k].prods.push(p.nama);
+    if ((p.satuanList || []).some(x => +x.berat > 0)) kat[k].weighed = true;
+  });
+
+  // ── Kolom & sel ──
+  const cols = {};            // id → {id, k, label, order, berat}
+  const rows = {};            // pelanggan → {first, cells:{id:qty}, kg:{k:kg}}
+  const colFor = (it) => {
+    const p = prodByName[it.nama];
+    const k = p ? rkKey(p.kategori) : 'lainnya';
+    if (!kat[k]) kat[k] = { key:k, label:'Lainnya', prods:[], weighed:false };
+    const K = kat[k];
+    const sl = p ? (p.satuanList || []) : [];
+    const si = sl.findIndex(x => x.satuan === it.satuan);
+    const berat = si >= 0 ? (+sl[si].berat || 0) : 0;
+    const multi = K.prods.length > 1 || !p;
+    const name  = p ? ((p.alias || '').trim() || p.nama) : it.nama;
+    const label = !multi ? (it.satuan || '—')
+                : (sl.length > 1 || !p) && it.satuan ? `${name} ${it.satuan}` : name;
+    const pi = p ? K.prods.indexOf(p.nama) : 999;
+    const id = `${k}|${multi ? it.nama : ''}|${it.satuan || ''}`;
+    if (!cols[id]) cols[id] = { id, k, label, order: pi * 100 + (si < 0 ? 99 : si), berat };
+    return cols[id];
+  };
+
+  notas.forEach(n => {
+    const who = n.client || '—';
+    const ord = `${n.tanggal || ''}|${String(n.nota || '').padStart(8, '0')}`;
+    if (!rows[who]) rows[who] = { first: ord, cells: {}, kg: {} };
+    if (ord < rows[who].first) rows[who].first = ord;
+    parseItems(n.items, n.itemsParsed, n.itemsArray).forEach(it => {
+      if (!it.nama || !(+it.qty)) return;
+      const c = colFor(it);
+      rows[who].cells[c.id] = (rows[who].cells[c.id] || 0) + (+it.qty);
+      if (c.berat) rows[who].kg[c.k] = (rows[who].kg[c.k] || 0) + (+it.qty) * c.berat;
+    });
+  });
+
+  const plg = Object.entries(rows).sort((a, b) => a[1].first < b[1].first ? -1 : 1);
+  const used = Object.values(cols);
+  if (!used.length) { el.innerHTML = '<div class="empty-state">Tidak ada rincian barang</div>'; return; }
+
+  const katRank = k => { const i = RK_KAT_ORDER.indexOf(k); return i < 0 ? (k === 'lainnya' ? 999 : 500) : i; };
+  const katList = [...new Set(used.map(c => c.k))]
+    .sort((a, b) => katRank(a) - katRank(b) || a.localeCompare(b))
+    .map(k => ({ ...kat[k], cols: used.filter(c => c.k === k).sort((a, b) => a.order - b.order || a.label.localeCompare(b.label)) }));
+  const tint = k => RK_TINT[k] ? ` style="background:${RK_TINT[k]}"` : '';
+  const head = k => RK_HEAD[k] ? ` style="background:${RK_HEAD[k]}"` : '';
+  const cell = (v, k, dec = 0) => v ? `<td${tint(k)}>${rkNum(v, dec)}</td>` : '<td class="e"></td>';
+  const sumCol = id => plg.reduce((s, [, r]) => s + (r.cells[id] || 0), 0);
+  const sumKg  = k  => plg.reduce((s, [, r]) => s + (r.kg[k] || 0), 0);
+
+  // ── Blok 1: berat ──
+  const A = katList.map(K => K.weighed
+    ? { K, cols: [{ id:'kg:' + K.key, label:'KG', kg:true }] }
+    : { K, cols: K.cols });
+  const anyKg = katList.some(K => K.weighed);
+  const aHead1 = A.map(({ K, cols }) => cols.length === 1 && cols[0].kg
+      ? `<th class="kat" rowspan="2"${head(K.key)}>${rkEsc(K.label)}</th>`
+      : `<th class="kat" colspan="${cols.length}"${head(K.key)}>${rkEsc(K.label)} <span style="font-weight:400;text-transform:none">(unit)</span></th>`).join('')
+    + (anyKg ? '<th class="kat" rowspan="2">Total KG</th>' : '');
+  const aHead2 = A.flatMap(({ K, cols }) => cols.length === 1 && cols[0].kg ? [] : cols.map(c => `<th>${rkEsc(c.label)}</th>`)).join('');
+  const aTotKg = A.flatMap(({ K, cols }) => cols.map(c => c.kg ? `<th>${rkNum(sumKg(K.key), 1)}</th>` : `<th>${rkNum(sumCol(c.id))}</th>`)).join('')
+    + (anyKg ? `<th>${rkNum(katList.reduce((s, K) => s + (K.weighed ? sumKg(K.key) : 0), 0), 1)}</th>` : '');
+  const aTotTon = A.flatMap(({ K, cols }) => cols.map(c => c.kg ? `<th>${rkNum(sumKg(K.key) / 1000, 2)}</th>` : '<th></th>')).join('')
+    + (anyKg ? `<th>${rkNum(katList.reduce((s, K) => s + (K.weighed ? sumKg(K.key) : 0), 0) / 1000, 2)}</th>` : '');
+  const aBody = plg.map(([nama, r], i) => `<tr><td class="no">${i + 1}</td><td class="nm" title="${rkEsc(nama)}">${rkEsc(nama)}</td>`
+    + A.flatMap(({ K, cols }) => cols.map(c => c.kg ? cell(r.kg[K.key], K.key, 1) : cell(r.cells[c.id], K.key))).join('')
+    + (anyKg ? (() => { const t = katList.reduce((s, K) => s + (K.weighed ? (r.kg[K.key] || 0) : 0), 0);
+                        return t ? `<td class="sum">${rkNum(t, 1)}</td>` : '<td class="e"></td>'; })() : '')
+    + '</tr>').join('');
+
+  // ── Blok 2: unit ──
+  const bHead1 = katList.map(K => `<th class="kat" colspan="${K.cols.length}"${head(K.key)}>${rkEsc(K.label)}</th>`).join('');
+  const bHead2 = katList.flatMap(K => K.cols.map(c => `<th>${rkEsc(c.label)}</th>`)).join('');
+  const bUnit  = katList.flatMap(K => K.cols.map(c => `<th>${rkNum(sumCol(c.id))}</th>`)).join('');
+  const bKg    = katList.flatMap(K => K.cols.map(c => `<th>${c.berat ? rkNum(sumCol(c.id) * c.berat, 1) : ''}</th>`)).join('');
+  const bKatKg = katList.map(K => `<th colspan="${K.cols.length}">${K.weighed ? rkNum(sumKg(K.key), 1) : ''}</th>`).join('');
+  const bBody  = plg.map(([nama, r], i) => `<tr><td class="no">${i + 1}</td><td class="nm" title="${rkEsc(nama)}">${rkEsc(nama)}</td>`
+    + katList.flatMap(K => K.cols.map(c => cell(r.cells[c.id], K.key))).join('') + '</tr>').join('');
+
+  const fix = (a, b) => `<th class="no"${a}>${b}</th>`;
+  el.innerHTML = `
+    <div class="rk-sec"><div class="rk-cap">Total berat per pelanggan</div>
+      <div class="rk-scroll"><table class="rk mk-keep-table">
+        <thead>
+          ${anyKg ? `<tr class="tot">${fix('', '')}<th class="nm lbl">TON :</th>${aTotTon}</tr>` : ''}
+          <tr class="tot">${fix('', '')}<th class="nm lbl">${anyKg ? 'KG / UNIT :' : 'UNIT :'}</th>${aTotKg}</tr>
+          <tr>${fix(' rowspan="2"', 'No.')}<th class="nm" rowspan="2">Nama</th>${aHead1}</tr>
+          <tr>${aHead2}</tr>
+        </thead>
+        <tbody>${aBody}</tbody>
+      </table></div>
+    </div>
+    <div class="rk-sec"><div class="rk-cap">Unit per pelanggan</div>
+      <div class="rk-scroll"><table class="rk mk-keep-table">
+        <thead>
+          <tr class="tot">${fix('', '')}<th class="nm lbl">TOTAL KG :</th>${bKatKg}</tr>
+          <tr class="tot">${fix('', '')}<th class="nm lbl">KG :</th>${bKg}</tr>
+          <tr class="tot">${fix('', '')}<th class="nm lbl">UNIT :</th>${bUnit}</tr>
+          <tr>${fix(' rowspan="2"', 'No.')}<th class="nm" rowspan="2">Nama</th>${bHead1}</tr>
+          <tr>${bHead2}</tr>
+        </thead>
+        <tbody>${bBody}</tbody>
+      </table></div>
+    </div>
+    ${katList.some(K => !K.weighed && K.key !== 'lainnya') ? `<div class="rk-note">Kategori tanpa berat per satuan (${
+      katList.filter(K => !K.weighed && K.key !== 'lainnya').map(K => rkEsc(K.label)).join(', ')
+    }) dihitung dalam unit. Isi kolom berat di halaman Produk agar ikut dijumlahkan dalam KG.</div>` : ''}`;
 }
 
 /* ── Parse items ── */
