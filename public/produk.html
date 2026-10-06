@@ -276,6 +276,7 @@
               <option>Lago</option>
               <option>Cipir</option>
               <option>Kerupuk</option>
+              <option>Mateng</option>
               <option>Lainnya</option>
             </select>
             <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;font-size:11px">▾</span>
@@ -347,17 +348,40 @@ async function loadProduk() {
   } catch(e) { produkList = []; } finally { MK_LOADER.hide(); }
   getKategori().forEach(k => openKat.add(k));
   renderTree();
+
+  /* Produk sering ditambahkan langsung di sheet. Simpanan di peramban
+     dianggap segar selama 5 menit, jadi memuat ulang halaman biasa
+     hanya menampilkan daftar lama tanpa bertanya ke server. Daftar lama
+     tetap ditampilkan dulu supaya halaman terbuka seketika, tapi server
+     selalu ditanya lagi — dan kalau isinya berbeda, daftar digambar
+     ulang di tempat. */
+  if (!loadProduk._listening && window.MK_NET && MK_NET.onRefresh) {
+    loadProduk._listening = true;
+    MK_NET.onRefresh((action, d) => {
+      if (action !== 'getProduk' || !d || !d.success) return;
+      produkList = d.produk;
+      getKategori().forEach(k => openKat.add(k));
+      renderTree();
+      if (selectedId && produkList.some(x => x.id === selectedId)) renderDetail();
+    });
+  }
+  if (window.MK_NET && MK_NET.recheck) MK_NET.recheck('getProduk', GAS_URL);
 }
 
 // ── Helpers ───────────────────────────────────────────────────
+/* Kategori dikelompokkan tanpa membedakan huruf besar/kecil. Aplikasi
+   menyimpan "Mateng", tapi yang diketik langsung di sheet bisa "MATENG";
+   tanpa ini keduanya muncul sebagai dua kelompok terpisah. */
+const katKey = k => String(k || 'Lainnya').trim().toLowerCase();
 function getKategori() {
-  const cats = [...new Set(produkList.map(p => p.kategori||'Lainnya'))];
-  return cats.sort();
+  const seen = {};
+  produkList.forEach(p => { const k = katKey(p.kategori); if (!seen[k]) seen[k] = String(p.kategori||'Lainnya').trim(); });
+  return Object.values(seen).sort((a,b) => a.localeCompare(b));
 }
 
 function produkByKat(kat, q='') {
   return produkList.filter(p =>
-    (p.kategori||'Lainnya') === kat &&
+    katKey(p.kategori) === katKey(kat) &&
     (!q || p.nama.toLowerCase().includes(q) || (p.alias||'').toLowerCase().includes(q))
   );
 }
@@ -491,9 +515,12 @@ function openModal(id=null) {
     document.getElementById('m-alias').value = p.alias||'';
     // Set kategori
     const katEl  = document.getElementById('m-kat');
-    const stdKats = ['Makaroni','Lago','Cipir','Kerupuk'];
-    if (stdKats.includes(p.kategori)) {
-      katEl.value = p.kategori;
+    const stdKats = ['Makaroni','Lago','Cipir','Kerupuk','Mateng'];
+    // Tidak peka huruf besar/kecil: "MATENG" yang diketik di sheet tetap
+    // terpilih sebagai Mateng, bukan jatuh ke "Lainnya".
+    const stdHit = stdKats.find(k => k.toLowerCase() === String(p.kategori||'').trim().toLowerCase());
+    if (stdHit) {
+      katEl.value = stdHit;
     } else if (p.kategori) {
       katEl.value = 'Lainnya';
       document.getElementById('m-kat-custom').style.display = 'block';

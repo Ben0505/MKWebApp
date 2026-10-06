@@ -613,6 +613,12 @@
      *  Contoh: MK_NET.onRefresh((action) => { if(action==='getProduk') render(); }); */
     onRefresh(fn) { listeners.push(fn); },
 
+    /** Ambil versi baru dari server SEKARANG, walau simpanannya masih
+     *  dianggap segar. Untuk halaman yang datanya bisa diubah langsung
+     *  di sheet (mis. Produk): tampilkan simpanan dulu, lalu kalau isi
+     *  server berbeda, onRefresh dipanggil dengan data barunya. */
+    recheck(action, gasUrl) { return revalidate(action, gasUrl).catch(() => {}); },
+
     /** Prefetch data untuk halaman berikutnya (dipanggil saat idle). */
     warm(gasUrl, actions) {
       if (!navigator.onLine) return;

@@ -850,11 +850,35 @@ function handleGetProduk() {
   const data = sh.getDataRange().getValues();
   const produk = [];
 
+  /* Baris yang ditambahkan langsung di sheet biasanya tidak punya ID di
+     kolom A — tidak ada yang mengetik "PRD-012" dengan tangan. Dulu
+     baris seperti itu dilewati diam-diam (`if (!row[0] || !row[1])`),
+     jadi produknya tidak pernah muncul di aplikasi berapa kali pun
+     dimuat ulang. Sekarang ID-nya dibuatkan dan ditulis ke kolom A,
+     supaya produk itu juga bisa diedit dan dihapus dari aplikasi. */
+  const ids = {};
+  for (let i = 1; i < data.length; i++) if (data[i][0]) ids[String(data[i][0])] = 1;
+  let lock = null;
+
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (!row[0] || !row[1]) continue;
+    if (!String(row[1] || '').trim()) continue;          // tanpa nama: baris kosong
     const aktif = String(row[5]).toUpperCase();
     if (aktif === 'FALSE') continue;
+
+    if (!row[0]) {
+      if (!lock) { lock = LockService.getScriptLock(); try { lock.waitLock(5000); } catch (e) {} }
+      // Mungkin sudah diisi permintaan lain sementara kita menunggu kunci.
+      const now = sh.getRange(i + 1, 1).getValue();
+      if (now) row[0] = now;
+      else {
+        let id, n = 0;
+        do { id = 'PRD-M' + Date.now().toString(36).toUpperCase() + (n ? '-' + n : ''); n++; } while (ids[id]);
+        ids[id] = 1;
+        sh.getRange(i + 1, 1).setValue(id);
+        row[0] = id;
+      }
+    }
 
     let satuanList = [];
     try { satuanList = JSON.parse(row[4] || '[]'); } catch(e) { satuanList = []; }
@@ -867,8 +891,28 @@ function handleGetProduk() {
       satuanList,
     });
   }
+  if (lock) { try { lock.releaseLock(); } catch (e) {} }
 
   return _json({ success: true, produk });
+}
+
+/**
+ * Pemicu sederhana: dijalankan Apps Script SENDIRI setiap kali sheet
+ * diedit dengan tangan (bukan lewat aplikasi). Tidak perlu dipasang
+ * lewat menu Triggers — cukup ada fungsi bernama onEdit di proyek ini.
+ *
+ * Aplikasi membuang cache server setiap kali ia menyimpan sesuatu, tapi
+ * tidak pernah tahu tentang perubahan yang diketik langsung di sheet.
+ * Akibatnya produk atau pelanggan yang ditambahkan dengan tangan baru
+ * muncul setelah cache habis sendiri. Ini menutup celah itu.
+ */
+function onEdit(e) {
+  try {
+    const name = e && e.range ? e.range.getSheet().getName() : '';
+    if (typeof _bustSheets === 'function') { _bustSheets(name ? [name] : []); return; }
+    // Code.gs versi lama: hanya dua cache ini yang ada.
+    CacheService.getScriptCache().removeAll(['v2_pelanggan', 'v2_produk']);
+  } catch (err) {}
 }
 
 function handleSaveProduk(p) {
