@@ -174,8 +174,12 @@ input::placeholder{color:var(--text-3);}
    batas bawahnya, baru sesudah itu tabel digeser di dalam kotaknya.
    Angka memakai huruf biasa dengan digit selebar sama — jauh lebih
    hemat tempat daripada huruf mono, tapi tetap rata kanan dan sejajar. */
+/* Isi utama adalah anak flex. Bawaan min-width:auto membuatnya ikut
+   melebar mengikuti tabel terlebar, sehingga seluruh HALAMAN tergeser
+   menyamping alih-alih tabelnya digeser di dalam kotaknya sendiri. */
+.main,.content{min-width:0;}
 #d-rekap{--rk-no:30px;--rk-nm:150px;--rk-min:56px;--rk-max:104px;--rk-fs:12px;--rk-pad:4px 7px;}
-@media(max-width:1180px){#d-rekap{--rk-nm:128px;--rk-min:50px;--rk-fs:11.5px;}}
+@media(max-width:1180px){#d-rekap{--rk-nm:116px;--rk-min:50px;--rk-fs:11.5px;}}
 @media(max-width:600px){#d-rekap{--rk-no:24px;--rk-nm:88px;--rk-min:46px;--rk-fs:11px;--rk-pad:3px 4px;}}
 .rk-sec{padding:12px 16px 2px;}
 .rk-cap{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);color:var(--text-2);margin-bottom:6px;}
@@ -193,8 +197,14 @@ table.rk{border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:
   text-align:right;font-family:var(--sans);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rk tr > :last-child{border-right:none;}
 .rk thead th{background:var(--surface2);font-size:.92em;font-weight:600;color:var(--text);text-align:center;
-  white-space:normal;overflow-wrap:anywhere;line-height:1.2;}
+  white-space:normal;overflow-wrap:normal;word-break:normal;hyphens:none;line-height:1.2;}
+/* Judul boleh turun baris, tapi hanya di antara kata — "KRESEK / KECIL",
+   bukan "KRESE / K KECIL". Kolom tidak pernah dibuat lebih sempit dari
+   kata terpanjang di judulnya (lihat rkFit). */
 .rk thead th.kat{letter-spacing:.03em;text-transform:uppercase;}
+/* Judul sub-kolom sedikit lebih kecil dan rapat: kata terpanjangnya yang
+   menentukan lebar kolom, jadi setiap piksel di sini dikali jumlah kolom. */
+.rk thead tr:not(.tot) th:not(.kat):not(.no):not(.nm){font-size:.86em;padding-left:3px;padding-right:3px;}
 .rk thead th.kat .unit{font-weight:400;text-transform:none;}
 .rk thead tr.tot th{background:var(--surface);font-weight:600;text-align:right;white-space:nowrap;overflow-wrap:normal;}
 .rk thead tr.tot th.lbl{color:var(--text-2);font-size:.88em;letter-spacing:.02em;}
@@ -206,9 +216,9 @@ table.rk{border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:
 .rk td.e{background:#ECE9E4;}
 .rk td.sum{font-weight:700;background:var(--surface);}
 .rk .ks{display:none;}
+.rk th.k1.short .kf{display:none;} .rk th.k1.short .ks{display:inline;}   /* kategori satu kolom yang tidak muat */
 @media(max-width:600px){
   .rk-sec{padding:10px 10px 2px;}
-  .rk th.k1 .kf{display:none;} .rk th.k1 .ks{display:inline;}   /* kategori satu kolom: label pendek */
   .rk thead tr.tot th.lbl{font-size:.82em;}
 }
 .rk-note{padding:0 16px 12px;font-size:11.5px;color:var(--text-3);line-height:1.5;}
@@ -884,20 +894,68 @@ function renderRekap(layout, notas, periodLbl) {
       katList.filter(K => !K.weighed && K.key !== 'lainnya').map(K => rkEsc(K.label)).join(', ')
     }) dihitung dalam unit. Isi kolom berat di halaman Produk agar ikut dijumlahkan dalam KG.</div>` : ''}`;
 
-  /* Batas bawah lebar kolom diambil dari angka terpanjang di tabel itu
-     sendiri. Batas tetap cepat atau lambat memotong angka — total sebulan
-     bisa "123.456" — dan angka yang terpotong lebih buruk daripada tabel
-     yang harus digeser. Digit di sini selebar 1ch (tabular-nums), jadi
-     panjang teks dalam ch ditambah padding sudah cukup; titik dan koma
-     lebih sempit dari digit, jadi perkiraannya selalu sedikit berlebih. */
-  el.querySelectorAll('table.rk').forEach(t => {
-    let len = 0;
-    t.querySelectorAll('td:not(.no):not(.nm), thead tr.tot th:not(.no):not(.nm)').forEach(c => {
-      if (c.colSpan === 1) len = Math.max(len, c.textContent.trim().length);
+  rkFit(el);
+}
+
+/* ── Lebar kolom minimum, diukur dengan huruf sungguhan ──────────
+   Batas bawah kolom = yang terbesar dari:
+     · angka terpanjang di tabel itu (total sebulan bisa "123.456"), dan
+     · KATA terpanjang di judul sub-kolomnya ("PLASTIK", "KRESEK").
+   Judul boleh turun baris, tapi tidak boleh dipotong di tengah kata.
+   Sebelumnya di layar lebar kolom diperas supaya tabel muat, sehingga
+   judul jadi "KRESE / K KECIL" dan "MAKAR / ONI". Sekarang tabel lebih
+   memilih digeser di dalam kotaknya daripada memotong kata.
+
+   Judul kategori yang hanya selebar satu kolom (MAKARONI) tidak ikut
+   menentukan lebar — kalau tidak muat, ia memakai label pendeknya (MKR).
+   Diulang saat ukuran layar berubah, karena ukuran huruf ikut berubah. */
+function rkFit(root) {
+  root.querySelectorAll('table.rk').forEach(t => {
+    const probeIn = (cell) => {
+      const sp = document.createElement('span');
+      sp.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;display:inline-block;';
+      cell.appendChild(sp);
+      return sp;
+    };
+    const padX = c => { const cs = getComputedStyle(c); return parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight); };
+
+    // kata terpanjang di judul sub-kolom (baris judul tanpa kolom nama)
+    let need = 0;
+    const subHeads = [...t.tHead.rows].filter(r => !r.classList.contains('tot') && !r.querySelector('.nm'))
+      .flatMap(r => [...r.cells]).concat([...t.tHead.querySelectorAll('th.kat:not(.k1)')].filter(c => c.colSpan === 1));
+    if (subHeads.length) {
+      const sp = probeIn(subHeads[0]);
+      const words = new Set(subHeads.flatMap(c => c.textContent.trim().split(/\s+/)).filter(Boolean));
+      words.forEach(w => { sp.textContent = w; need = Math.max(need, sp.getBoundingClientRect().width + padX(subHeads[0])); });
+      sp.remove();
+    }
+    // angka terpanjang, diukur tebal (baris total memakai huruf tebal)
+    const tot = t.tHead.querySelector('tr.tot th:not(.no):not(.nm)') || t.querySelector('td:not(.no):not(.nm)');
+    if (tot) {
+      const sp = probeIn(tot); sp.style.fontWeight = '700';
+      const nums = new Set([...t.querySelectorAll('td:not(.no):not(.nm), thead tr.tot th:not(.no):not(.nm)')]
+        .filter(c => c.colSpan === 1).map(c => c.textContent.trim()).filter(Boolean));
+      nums.forEach(n => { sp.textContent = n; need = Math.max(need, sp.getBoundingClientRect().width + padX(tot)); });
+      sp.remove();
+    }
+    t.style.setProperty('--rk-need', Math.ceil(need + 2) + 'px');
+
+    // judul kategori satu kolom: nama lengkap kalau muat, label pendek kalau tidak
+    t.querySelectorAll('th.k1').forEach(th => {
+      th.classList.remove('short');
+      const kf = th.querySelector('.kf'); if (!kf) return;
+      const sp = probeIn(th);
+      const widest = Math.max(...kf.textContent.trim().split(/\s+/).map(w => { sp.textContent = w; return sp.getBoundingClientRect().width; }));
+      sp.remove();
+      if (widest > th.clientWidth - padX(th) + 0.5) th.classList.add('short');
     });
-    t.style.setProperty('--rk-need', `calc(${len + 1}ch + 10px)`);
   });
 }
+let _rkResize;
+window.addEventListener('resize', () => {
+  clearTimeout(_rkResize);
+  _rkResize = setTimeout(() => { const el = document.getElementById('d-rekap'); if (el) rkFit(el); }, 150);
+});
 
 /* ── Parse items ── */
 function parseItems(itemStr, parsed, itemsArray) {
