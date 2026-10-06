@@ -1836,9 +1836,17 @@ async function saveCombine() {
   const status       = totalBayar===0?'PENDING':sisa===0?'LUNAS':sisa<0?'KREDIT':'PENDING';
   const noTagihan    = document.getElementById('comb-notag').value.trim() || src.noTagihan+'-G';
 
+  /* Grup, alias dan kota ikut disimpan. Dulu tidak, sehingga tagihan
+     gabungan — yang justru paling sering merupakan tagihan untuk satu
+     grup — tersimpan dengan kolom grup kosong dan tidak muncul di
+     profil anggota grup lainnya. */
+  const srcClient = CLIENTS.find(c=>c.name===src.client) || {};
   const merged = {
     id: 'gabung_'+Date.now(),
     noTagihan, client: src.client,
+    alias: src.alias || srcClient.alias || '',
+    kota:  src.kota  || srcClient.kota  || '',
+    group: src.group || srcClient.group || '',
     tanggal: jakartaDate(),
     notas: notaList.length, notaList,
     periode: src.periode, // approximate

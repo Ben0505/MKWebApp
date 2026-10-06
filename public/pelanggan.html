@@ -251,6 +251,23 @@
 
   @keyframes up{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
   ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── Tagihan: Sendiri / Grup ── */
+.tg-scope-bar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:10px;}
+.tg-scope{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;min-width:0;
+  padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);
+  cursor:pointer;font-family:var(--sans);color:var(--text-2);}
+.tg-scope:hover{border-color:var(--text-3);}
+.tg-scope.on{border-color:var(--text);background:var(--text);color:#fff;}
+.tg-scope-lbl{font-size:12.5px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tg-scope-lbl b{font-family:var(--mono);font-weight:600;}
+.tg-scope-sub{font-size:11.5px;opacity:.85;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tg-who{font-family:var(--sans);font-size:11.5px;font-weight:500;color:var(--text-2);margin-top:2px;}
+.tg-who.self{color:var(--text-3);font-style:italic;}
+@media(max-width:480px){
+  .tg-scope-bar{grid-template-columns:1fr 1fr;}
+  .tg-scope[data-scope="semua"]{grid-column:1 / -1;}
+}
 </style>
 <script src="mk-config.js"></script>
 <script src="auth.js"></script>
@@ -450,11 +467,22 @@ async function loadAll() {
     const tagihanAll = dT.success ? dT.tagihan : [];
     const kreditAll  = dK.success ? dK.kredit  : [];
 
+    /* Grup sebuah tagihan. Tagihan gabungan dulu disimpan TANPA kolom
+       grup, sehingga tidak pernah muncul di profil anggota grup yang
+       lain. Kalau kolomnya kosong, grupnya diambil dari pelanggan yang
+       ditagih. */
+    const grupPelanggan = {};
+    pelangganList.forEach(x => { grupPelanggan[x.nama] = x.group || ''; });
+    const grupTagihan = t => t.group || grupPelanggan[t.client] || '';
+
     // Join tagihan dan kredit ke setiap pelanggan
     pelangganList.forEach(p => {
       p.tagihanList = tagihanAll.filter(t =>
         t.client === p.nama ||
-        (p.group && t.group === p.group && p.group !== ''));
+        (p.group && grupTagihan(t) === p.group));
+      // Sendiri = ditagihkan ke pelanggan ini. Grup = ke anggota lain.
+      p.tagihanSendiri = p.tagihanList.filter(t => t.client === p.nama);
+      p.tagihanGrup    = p.tagihanList.filter(t => t.client !== p.nama);
       p.kreditList  = kreditAll.filter(k =>
         k.client === p.nama ||
         (p.group && k.group === p.group && p.group !== ''));
@@ -517,8 +545,11 @@ function renderList() {
     const isOpen  = openGroups.has(key);
     const label   = key==='__ungrouped__' ? 'Tanpa Grup' : key==='__nonaktif__' ? 'Non-Aktif' : key;
     // Count pending tagihan for group badge
-    const totPending = members.reduce((s,p)=>s+(p.tagihanList||[]).filter(t=>t.status==='PENDING').length,0);
-    const totPendingAmt = members.reduce((s,p)=>s+(p.tagihanList||[]).filter(t=>t.status==='PENDING').reduce((ss,t)=>ss+(t.sisa||0),0),0);
+    // Dihitung dari tagihan MILIK tiap anggota saja. tagihanList berisi
+    // seluruh tagihan grup, jadi menjumlahkannya per anggota membuat satu
+    // tagihan terhitung sebanyak jumlah anggota.
+    const totPending = members.reduce((s,p)=>s+(p.tagihanSendiri||[]).filter(t=>t.status==='PENDING').length,0);
+    const totPendingAmt = members.reduce((s,p)=>s+(p.tagihanSendiri||[]).filter(t=>t.status==='PENDING').reduce((ss,t)=>ss+(t.sisa||0),0),0);
     const totKredit=members.reduce((s,p)=>s+(p.kredit||0),0);
 
     const groupBadge = totKredit > 0
@@ -529,7 +560,7 @@ function renderList() {
 
     const membersHtml = members.map(p => {
       const initials = p.nama.slice(0,2).toUpperCase();
-      const pendingTagihan = (p.tagihanList||[]).filter(t=>t.status==='PENDING');
+      const pendingTagihan = (p.tagihanSendiri||[]).filter(t=>t.status==='PENDING');
       const pendingAmt = pendingTagihan.reduce((s,t)=>s+(t.sisa||0),0);
       const badge = p.aktif===false
         ? `<span class="plg-badge" style="background:#FEF2F2;color:#B91C1C;font-size:9px">Non-aktif</span>`
@@ -579,7 +610,13 @@ function selectPelanggan(id) {
     const tempDiv = document.createElement('div');
     document.getElementById('detail-panel').innerHTML = '';
     renderDetail(); // renders into detail-panel
-    document.getElementById('sheet-body').innerHTML = document.getElementById('detail-panel').innerHTML;
+    /* Dipindah, bukan disalin. Kalau disalin, setiap id ada dua kali dan
+       getElementById menemukan salinan panel desktop yang tersembunyi —
+       kotak cari dan filter tanggal tagihan di HP diam-diam mengubah
+       tabel yang tidak terlihat. */
+    const panel = document.getElementById('detail-panel');
+    document.getElementById('sheet-body').innerHTML = panel.innerHTML;
+    panel.innerHTML = '';
     document.getElementById('mobile-sheet').classList.add('open');
   } else {
     renderDetail();
@@ -645,10 +682,13 @@ function renderDetail() {
         <div class="stat-item">
           <div class="stat-lbl">Tagihan Pending</div>
           ${(()=>{
-            const pending=(p.tagihanList||[]).filter(t=>t.status==='PENDING');
+            const pending=(p.tagihanSendiri||[]).filter(t=>t.status==='PENDING');
             const tot=pending.reduce((s,t)=>s+(t.sisa||0),0);
+            const gp=(p.tagihanGrup||[]).filter(t=>t.status==='PENDING');
+            const gtot=gp.reduce((s,t)=>s+(t.sisa||0),0);
             return `<div class="stat-val ${pending.length>0?'warn':''}">${pending.length} tagihan</div>
-            <div class="stat-sub">${tot>0?rp(tot):'—'}</div>`;
+            <div class="stat-sub">${tot>0?rp(tot):'—'}</div>
+            ${gp.length?`<div class="stat-sub">+ grup: ${gp.length} · ${rp(gtot)}</div>`:''}`;
           })()}
         </div>
         <div class="stat-item">
@@ -679,8 +719,12 @@ function renderDetail() {
               if(so!==0)return so;
               return new Date(b.tanggal)-new Date(a.tanggal);
             });
-          window._plgTagihanStore = {all: allT, sorted, plgId: p.id};
+          /* Sendiri lebih dulu kalau ada — itu yang paling sering dicari.
+             Pelanggan tanpa grup tidak perlu pilihan ini sama sekali. */
+          const scope = !p.group ? 'semua' : (p.tagihanSendiri||[]).length ? 'sendiri' : 'grup';
+          window._plgTagihanStore = {all: allT, sorted, plgId: p.id, nama: p.nama, scope, hasGroup: !!p.group};
           return `
+          ${p.group ? tagihanScopeBar(p, scope) : ''}
           <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
             <input type="text" id="tg-search-${p.id}" placeholder="Cari no. tagihan / nota..." style="flex:1;min-width:160px;font-size:12px;padding:6px 10px;"
               oninput="filterTagihanTab('${p.id}')">
@@ -697,9 +741,7 @@ function renderDetail() {
               <span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text-3);pointer-events:none;">▾</span>
             </div>
           </div>
-          <div id="tg-table-${p.id}">
-            ${renderTagihanRows(sorted)}
-          </div>`;
+          <div id="tg-table-${p.id}"></div>`;
         })()}
       </div>
 
@@ -742,6 +784,9 @@ function renderDetail() {
       </div>
 
     </div>`;
+  // Tabel tagihan diisi lewat jalur yang sama dengan filter dan pilihan
+  // Sendiri/Grup, supaya tampilan awal dan sesudahnya tidak bisa berbeda.
+  filterTagihanTab(p.id);
 }
 
 // ── Modal ──
@@ -903,8 +948,10 @@ function buildSatuanOpts(prod, selectedSatuan) {
 }
 
 // ── Save ──
-function renderTagihanRows(list) {
+function renderTagihanRows(list, selfName) {
   if(!list.length) return '<p style="font-size:13px;color:var(--text-3);font-style:italic;padding:8px 0">Tidak ada tagihan ditemukan.</p>';
+  const who = t => selfName == null ? '' :
+    `<div class="tg-who ${t.client===selfName?'self':''}">${t.client===selfName?'Sendiri':(t.client||'—')}</div>`;
   return `<table class="hk-table">
     <thead><tr>
       <th>No. Tagihan</th><th>Tgl Tagih</th><th>Periode</th>
@@ -916,7 +963,7 @@ function renderTagihanRows(list) {
         const sisaColor=t.sisa<0?'var(--blue)':t.sisa>0?'var(--accent)':'var(--text-3)';
         return `<tr style="cursor:pointer;" onclick="openTagihanDetail(${i})">
           <td style="font-family:var(--mono);font-weight:500;font-size:12px;">${t.noTagihan}
-            <span class="sbadge ${sc}" style="margin-left:4px;font-size:10px;">${t.status}</span></td>
+            <span class="sbadge ${sc}" style="margin-left:4px;font-size:10px;">${t.status}</span>${who(t)}</td>
           <td style="font-size:12px;color:var(--text-3)">${fmtD(t.tanggal)}</td>
           <td style="font-size:11px;color:var(--text-3);font-family:var(--mono)">${t.periode||'—'}</td>
           <td style="text-align:right;font-family:var(--mono);font-weight:500;font-size:12px">${rp(t.totalTagihan)}</td>
@@ -925,6 +972,37 @@ function renderTagihanRows(list) {
       }).join('')}
     </tbody>
   </table>`;
+}
+
+/* Pilihan Sendiri / Grup, dengan jumlah dan sisa yang masih terbuka
+   di tiap pilihan — jadi tanpa berpindah pun sudah terlihat di mana
+   tagihan yang belum lunas berada. */
+function tagihanScopeBar(p, scope) {
+  const part = (list) => {
+    const open = list.filter(t => t.status === 'PENDING');
+    const amt  = open.reduce((s,t)=>s+(t.sisa||0),0);
+    return { n: list.length, open: open.length, amt };
+  };
+  const S = part(p.tagihanSendiri||[]), G = part(p.tagihanGrup||[]), A = part(p.tagihanList||[]);
+  const chip = (key, label, x) => `
+    <button type="button" class="tg-scope ${scope===key?'on':''}" data-scope="${key}"
+      onclick="setTagihanScope('${p.id}','${key}')">
+      <span class="tg-scope-lbl">${label} <b>${x.n}</b></span>
+      <span class="tg-scope-sub">${x.open ? x.open+' pending · '+rp(x.amt) : 'tidak ada yang pending'}</span>
+    </button>`;
+  return `<div class="tg-scope-bar">
+    ${chip('sendiri', 'Sendiri', S)}
+    ${chip('grup', 'Grup ' + p.group, G)}
+    ${chip('semua', 'Semua', A)}
+  </div>`;
+}
+
+function setTagihanScope(plgId, scope) {
+  const store = window._plgTagihanStore;
+  if (!store || store.plgId !== plgId) return;
+  store.scope = scope;
+  document.querySelectorAll('.tg-scope').forEach(b => b.classList.toggle('on', b.dataset.scope === scope));
+  filterTagihanTab(plgId);
 }
 
 function filterTagihanTab(plgId) {
@@ -938,7 +1016,10 @@ function filterTagihanTab(plgId) {
   const cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate()-30);
   const statusOrder={PENDING:0,KREDIT:1,LUNAS:2};
 
+  const scope = store.scope || 'semua';
   let filtered = (store.all||[]).filter(t => {
+    if (scope === 'sendiri' && t.client !== store.nama) return false;
+    if (scope === 'grup'    && t.client === store.nama) return false;
     // Lunas older than 30 days hidden unless explicitly filtered
     if(!status && t.status==='LUNAS' && new Date(t.tanggal)<cutoff30) return false;
     if(status && t.status!==status) return false;
@@ -958,7 +1039,9 @@ function filterTagihanTab(plgId) {
 
   store.sorted = filtered;
   const el = document.getElementById('tg-table-'+plgId);
-  if(el) el.innerHTML = renderTagihanRows(filtered);
+  // Di luar "Sendiri", kolom pelanggan perlu: tanpa itu tidak terlihat
+  // tagihan grup itu ditagihkan ke toko yang mana.
+  if(el) el.innerHTML = renderTagihanRows(filtered, store.hasGroup && scope !== 'sendiri' ? store.nama : null);
 }
 
 async function savePelanggan() {
@@ -989,13 +1072,22 @@ async function savePelanggan() {
   // Update lokal dulu
   if (editId) {
     const idx = pelangganList.findIndex(x=>x.id===editId);
-    if (idx>=0) pelangganList[idx] = obj;
+    if (idx>=0) {
+      /* obj hanya berisi kolom formulir. Tanpa ini tagihan dan kredit
+         yang sudah digabungkan saat memuat ikut hilang, dan tab Tagihan
+         kosong sampai halaman dimuat ulang. */
+      const old = pelangganList[idx];
+      ['tagihanList','tagihanSendiri','tagihanGrup','kreditList','belumTagih','totalBelum']
+        .forEach(k => { if (old[k] !== undefined && obj[k] === undefined) obj[k] = old[k]; });
+      pelangganList[idx] = obj;
+    }
   } else {
     pelangganList.push(obj);
   }
   if (selectedId===editId||!editId) selectedId = id;
   renderList();
-  renderDetail();
+  if (isMobile() && document.getElementById('mobile-sheet').classList.contains('open')) selectPelanggan(selectedId);
+  else renderDetail();
   closeModal();
   showToast(`✓ "${nama}" disimpan!`, true);
 
