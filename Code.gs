@@ -648,8 +648,8 @@ function _routePost(p) {
   // jadi menyimpan nota tidak lagi ikut membuang cache produk.
   //
   // Catatan yang mudah terlewat:
-  //  • saveTagihan juga menyentuh Kredit DAN kolom kredit di Pelanggan
-  //    (lewat _addKredit / _updateKreditPelanggan / _markKreditTerpakai).
+  //  • save/update/combineTagihan juga menyentuh Kredit DAN kolom kredit
+  //    di Pelanggan (lewat _kreditTerpakai / _sinkronKredit / _hitungSaldoKredit).
   //  • updateLangsiran bisa menulis ke Stock saat barang diterima.
   //  • saveStock & addLangsiran dulu TIDAK membuang cache apa pun.
   //    Dulu tidak apa-apa karena endpoint-nya memang belum di-cache;
@@ -1499,28 +1499,16 @@ function handleSaveTagihan(p) {
     JSON.stringify(p.bayarRows || []),
     ts,
   ]);
+  _warnaTagihan(sh, sh.getLastRow(), p.status);
 
-  // Warna baris
-  const lastRow = sh.getLastRow();
-  _setStatusColor(sh, lastRow, 20, p.status);
-
-  // Jika ada kelebihan bayar (sisa < 0), simpan ke Kredit
-  if ((p.sisa || 0) < 0) {
-    _addKredit({
-      id:           'k' + Date.now(),
-      client:       p.client    || '',
-      group:        p.group     || '',
-      fromTagihan:  p.noTagihan || '',
-      tanggal:      p.tanggal   || new Date(),
-      jumlah:       Math.abs(p.sisa),
-    });
-  }
-
-  // Update kredit pelanggan jika kredit digunakan
-  if ((p.kreditUsed || 0) > 0) {
-    _updateKreditPelanggan(p.client, -Math.abs(p.kreditUsed));
-    _markKreditTerpakai(p.client, p.kreditUsed);
-  }
+  const kena = {};
+  _kreditTerpakai(p, kena);
+  _sinkronKredit({
+    id, noTagihan: p.noTagihan, client: p.client, group: p.group,
+    tanggal: p.tanggal, sisa: p.sisa, kreditBaruId: p.kreditBaruId,
+    kreditDari: p.kreditDari,
+  }, [], kena);
+  _hitungSaldoKredit(kena);
 
   return _json({ success: true, id });
 }
@@ -1532,7 +1520,7 @@ function handleUpdateTagihan(p) {
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]) !== String(p.id)) continue;
 
-    sh.getRange(i+1, 2, 1, 18).setValues([[
+    const row = [
       p.noTagihan    || data[i][1],
       p.tanggal      ? new Date(p.tanggal) : new Date(data[i][2]),
       p.client       || data[i][3],
@@ -1551,9 +1539,21 @@ function handleUpdateTagihan(p) {
       p.status       || data[i][16],
       p.catatan      != null ? p.catatan      : data[i][17],
       JSON.stringify(p.bayarRows || []),
-    ]]);
+    ];
+    sh.getRange(i+1, 2, 1, 18).setValues([row]);
+    _warnaTagihan(sh, i+1, row[15]);
 
-    _setStatusColor(sh, i+1, 20, p.status || String(data[i][16]));
+    /* Dulu berhenti di sini: tagihan yang lewat edit menjadi KREDIT
+       (kelebihan bayar) tidak pernah tercatat di sheet Kredit, dan
+       kredit yang dipilih saat edit tidak pernah ditandai terpakai. */
+    const kena = {};
+    _kreditTerpakai(p, kena);
+    _sinkronKredit({
+      id: p.id, noTagihan: row[0], client: row[2], group: row[5],
+      tanggal: row[1], sisa: row[14], kreditBaruId: p.kreditBaruId,
+    }, [data[i][1]], kena);
+    _hitungSaldoKredit(kena);
+
     return _json({ success: true });
   }
   return _json({ success: false, error: 'Tagihan tidak ditemukan.' });
@@ -1563,22 +1563,189 @@ function handleCombineTagihan(p) {
   const sh   = SS.getSheetByName(SH_TAGIHAN);
   const data = sh.getDataRange().getValues();
 
-  // Hapus tagihan lama yang digabung (set baris kosong / soft delete tidak didukung mermaid)
-  // Implementasi: hapus baris dari bawah ke atas untuk menghindari index shift
-  const removedIds = new Set(p.removedIds || []);
+  const removedIds = new Set((p.removedIds || []).map(String));
   const rowsToDelete = [];
+  const noLama = [];
 
   for (let i = 1; i < data.length; i++) {
     if (removedIds.has(String(data[i][0]))) {
       rowsToDelete.push(i + 1); // 1-based
+      noLama.push(data[i][1]);
     }
   }
 
   // Hapus dari bawah ke atas
-  rowsToDelete.sort((a,b) => b-a).forEach(r => sh.deleteRow(r));
+  rowsToDelete.sort((a,b) => b-a).forEach(r => _hapusBaris(sh, r, 20));
 
-  // Simpan tagihan gabungan baru
+  // Simpan tagihan gabungan baru. Kredit dari tagihan-tagihan lama
+  // dialihkan ke tagihan gabungan (bukan dibuat dobel).
+  p.kreditDari = noLama;
   return handleSaveTagihan(p);
+}
+
+// ── Kredit ⇄ Tagihan ─────────────────────────────────────────
+//
+// Aturan: kelebihan bayar sebuah tagihan (sisa < 0) = kredit.
+// Baris di sheet Kredit yang "From Tagihan"-nya = No. Tagihan itu
+// disesuaikan setiap kali tagihannya disimpan, diedit atau digabung:
+//   • belum ada & sisa < 0       → baris baru
+//   • sudah ada & jumlah berubah → jumlahnya diperbarui
+//   • sudah ada & sisa ≥ 0       → baris yang BELUM terpakai dihapus
+// Baris yang sudah terpakai tidak pernah diubah; jumlahnya dihitung
+// sebagai bagian kredit yang sudah keluar, supaya tidak tercatat dua kali.
+// Kolom Kredit di Pelanggan dihitung ulang dari sheet Kredit
+// (jumlah kredit yang belum terpakai), bukan ditambah/dikurangi.
+
+function _shKredit() {
+  let sh = SS.getSheetByName(SH_KREDIT);
+  if (!sh) { setupKredit(); sh = SS.getSheetByName(SH_KREDIT); }
+  return sh;
+}
+
+function _kunciNama(s) { return String(s == null ? '' : s).trim().toUpperCase(); }
+function _kunciNo(s)   { return String(s == null ? '' : s).trim().replace(/\.0$/, ''); }
+
+function _warnaTagihan(sh, row, status) {
+  // _setStatusColor hanya kenal 'KELEBIHAN', padahal aplikasi menulis 'KREDIT'
+  _setStatusColor(sh, row, 20, String(status) === 'KREDIT' ? 'KELEBIHAN' : status);
+}
+
+// deleteRow gagal kalau itu satu-satunya baris data di bawah header beku
+function _hapusBaris(sh, r, cols) {
+  try { sh.deleteRow(r); }
+  catch (e) { const rg = sh.getRange(r, 1, 1, cols); rg.clearContent(); rg.setBackground(null); }
+}
+
+// Tandai kredit yang dipakai tagihan ini. Pakai ID (yang dipilih di layar);
+// kalau klien lama tidak mengirim ID, kembali ke cara lama (urut per nama).
+function _kreditTerpakai(p, kena) {
+  const ids = (p.kreditIds || []).map(String).filter(Boolean);
+  const sh  = _shKredit();
+  if (!ids.length) {
+    if ((+p.kreditUsed || 0) > 0 && !p.kreditDari) {
+      _markKreditTerpakai(p.client, +p.kreditUsed);
+      kena[_kunciNama(p.client)] = 1;
+    }
+    return;
+  }
+  const mau  = {}; ids.forEach(x => mau[x] = 1);
+  const data = sh.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (!mau[String(data[i][0])]) continue;
+    if (String(data[i][6]).toUpperCase() === 'TRUE') continue;
+    sh.getRange(i+1, 7).setValue('TRUE');
+    kena[_kunciNama(data[i][1])] = 1;
+  }
+}
+
+// t: {id, noTagihan, client, group, tanggal, sisa, kreditBaruId}
+// noLain: No. Tagihan lama (diganti saat edit / tagihan yang digabung)
+function _sinkronKredit(t, noLain, kena) {
+  const sh   = _shKredit();
+  const data = sh.getDataRange().getValues();
+  const noBaru = _kunciNo(t.noTagihan);
+  const kunci  = {};
+  [t.noTagihan].concat(noLain || []).concat(t.kreditDari || []).forEach(n => {
+    n = _kunciNo(n); if (n) kunci[n] = 1;
+  });
+  if (!Object.keys(kunci).length) return;
+
+  const mau = Math.max(0, -(+t.sisa || 0));
+  let terpakai = 0;
+  const bebas = [];       // baris yang belum terpakai, indeks 0-based
+  const idAda = {};
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0]) idAda[String(data[i][0])] = 1;
+    if (!data[i][0] || !kunci[_kunciNo(data[i][3])]) continue;
+    kena[_kunciNama(data[i][1])] = 1;
+    if (String(data[i][6]).toUpperCase() === 'TRUE') {
+      terpakai += +data[i][5] || 0;
+      if (_kunciNo(data[i][3]) !== noBaru) sh.getRange(i+1, 4).setValue(t.noTagihan);
+    } else {
+      bebas.push(i);
+    }
+  }
+
+  const perlu = mau - terpakai;     // yang masih harus tersedia
+  const tgl   = t.tanggal ? new Date(t.tanggal) : new Date();
+  let hapus   = bebas;
+
+  if (perlu > 0) {
+    kena[_kunciNama(t.client)] = 1;
+    if (bebas.length) {
+      const i = bebas[0];
+      sh.getRange(i+1, 2, 1, 5).setValues([[
+        t.client || data[i][1], t.group || data[i][2] || '', t.noTagihan, tgl, perlu,
+      ]]);
+      hapus = bebas.slice(1);
+    } else {
+      let id = String(t.kreditBaruId || ('k' + (t.id || Date.now())));
+      for (let n = 2; idAda[id]; n++) id = String(t.kreditBaruId || ('k' + (t.id || Date.now()))) + '-' + n;
+      sh.appendRow([id, t.client || '', t.group || '', t.noTagihan || '', tgl, perlu, 'FALSE']);
+      sh.getRange(sh.getLastRow(), 1, 1, 7).setBackground(CLR_KREDIT);
+    }
+  }
+
+  hapus.slice().sort((a,b) => b-a).forEach(i => _hapusBaris(sh, i+1, 7));
+}
+
+// Saldo kredit per pelanggan = total kredit yang belum terpakai.
+// kena: {NAMA: 1} → hanya pelanggan itu; null → semua pelanggan.
+function _hitungSaldoKredit(kena) {
+  if (kena && !Object.keys(kena).length) return;
+  const dk = _shKredit().getDataRange().getValues();
+  const saldo = {};
+  for (let i = 1; i < dk.length; i++) {
+    if (!dk[i][0] || String(dk[i][6]).toUpperCase() === 'TRUE') continue;
+    const k = _kunciNama(dk[i][1]);
+    saldo[k] = (saldo[k] || 0) + (+dk[i][5] || 0);
+  }
+  const sh   = SS.getSheetByName(SH_PELANGGAN);
+  const data = sh.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    const k = _kunciNama(data[i][1]);
+    if (!k || (kena && !kena[k])) continue;
+    const v = saldo[k] || 0;
+    if ((+data[i][10] || 0) !== v) sh.getRange(i+1, 11).setValue(v);
+  }
+}
+
+/* Jalankan SEKALI dari editor Apps Script (pilih "perbaikiKredit" di
+   daftar fungsi → Run) untuk tagihan lama yang sudah KREDIT tapi belum
+   tercatat di sheet Kredit. Aman dijalankan berulang kali.
+   Hasilnya terlihat di Execution log. */
+function perbaikiKredit() {
+  const sh   = SS.getSheetByName(SH_TAGIHAN);
+  const data = sh.getDataRange().getValues();
+  const jml  = {};
+  for (let i = 1; i < data.length; i++) {
+    const n = _kunciNo(data[i][1]); if (data[i][0] && n) jml[n] = (jml[n] || 0) + 1;
+  }
+
+  const sebelum = _shKredit().getDataRange().getValues().length;
+  const dobel = [];
+  let dicek = 0;
+  for (let i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    const no = _kunciNo(data[i][1]);
+    if (!no) continue;
+    if (jml[no] > 1) { if (dobel.indexOf(no) < 0) dobel.push(no); continue; }
+    _sinkronKredit({
+      id: data[i][0], noTagihan: data[i][1], client: data[i][3], group: data[i][6],
+      tanggal: data[i][2], sisa: data[i][15],
+    }, [], {});
+    _warnaTagihan(sh, i+1, data[i][16]);
+    dicek++;
+  }
+  _hitungSaldoKredit(null);
+  if (typeof _bustSheets === 'function') _bustSheets([SH_TAGIHAN, SH_KREDIT, SH_PELANGGAN]);
+  else CacheService.getScriptCache().removeAll(['v2_pelanggan', 'v2_produk']);
+
+  const sesudah = _shKredit().getDataRange().getValues().length;
+  Logger.log('Tagihan dicek: ' + dicek + '. Baris Kredit: ' + (sebelum-1) + ' → ' + (sesudah-1) + '.');
+  if (dobel.length) Logger.log('DILEWATI, No. Tagihan dipakai lebih dari sekali: ' + dobel.join(', ') +
+                               '. Beri nomor berbeda lalu jalankan lagi.');
 }
 
 // ============================================================

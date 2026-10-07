@@ -1265,6 +1265,9 @@ async function saveTagihan() {
     kreditUsed, totalBayar, sisa, status, catatan,
     notas: selData.length,
   };
+  /* ID kredit dibuat di sini dan dikirim ke server, supaya kredit yang
+     langsung dipakai lagi (sebelum halaman dimuat ulang) dikenali server. */
+  obj.kreditBaruId = 'k' + obj.id;
 
   // Optimistic
   TAGIHANLIST.unshift(obj);
@@ -1275,7 +1278,7 @@ async function saveTagihan() {
   // Add new kredit if kelebihan bayar
   if (sisa < 0) {
     KREDIT_POOL.unshift({
-      id: 'k'+Date.now(), client: selClient.name,
+      id: obj.kreditBaruId, client: selClient.name,
       group: selClient.group||'', fromTagihan: noTagihan,
       tanggal, jumlah: Math.abs(sisa),
     });
@@ -1647,9 +1650,7 @@ function updateEditTotal(t) {
 
   const bayarRows      = getBayarRows('e-bayar-list');
   const totalBayarCash = bayarRows.reduce((s, r) => s + (+r.jumlah || 0), 0);
-  const kreditUsed     = KREDIT_POOL
-    .filter(k => editSelKredit.has(String(k.id)))
-    .reduce((s,k) => s+(+k.jumlah||0), 0);
+  const kreditUsed     = editKredit(t).used;
   const totalBayar     = totalBayarCash + kreditUsed;
   const sisa           = totalTagihan - totalBayar;
 
@@ -1672,6 +1673,40 @@ function closeEdit(){
   editingId=null;
 }
 
+/* Kredit di modal edit: yang sudah dipakai tagihan ini tetap terhitung
+   (dulu hilang setiap kali tagihan diedit), yang baru dipilih ditambahkan. */
+function editKredit(t) {
+  const lama = new Set(((t&&t.kreditIds)||[]).map(String));
+  const baru = KREDIT_POOL.filter(k => editSelKredit.has(String(k.id)) && !lama.has(String(k.id)) && !k.terpakai);
+  return { used: (+(t&&t.kreditUsed)||0) + baru.reduce((s,k)=>s+(+k.jumlah||0),0), baru };
+}
+
+function pakaiKreditLokal(ids) {
+  const s = new Set(ids.map(String));
+  KREDIT_POOL.forEach(k => { if (s.has(String(k.id))) k.terpakai = true; });
+}
+
+/* Cermin dari _sinkronKredit di server: kelebihan bayar tagihan = kredit. */
+function sinkronKreditLokal(t, noLain) {
+  const kunci = new Set([t.noTagihan, ...(noLain||[])].filter(Boolean).map(String));
+  const milik = KREDIT_POOL.filter(k => kunci.has(String(k.fromTagihan)));
+  const terpakai = milik.filter(k=>k.terpakai).reduce((s,k)=>s+(+k.jumlah||0),0);
+  milik.forEach(k => { if (k.terpakai) k.fromTagihan = t.noTagihan; });
+  const bebas = milik.filter(k=>!k.terpakai);
+  KREDIT_POOL = KREDIT_POOL.filter(k => !bebas.includes(k));
+  const perlu = Math.max(0, -(+t.sisa||0)) - terpakai;
+  if (perlu > 0 && !bebas[0]) {           // ID baru: sama aturannya dengan server
+    const ada = new Set(KREDIT_POOL.map(k=>String(k.id)));
+    let id = t.kreditBaruId;
+    for (let n = 2; ada.has(id); n++) id = t.kreditBaruId + '-' + n;
+    t.kreditBaruId = id;
+  }
+  if (perlu > 0) KREDIT_POOL.unshift({
+    id: bebas[0] ? bebas[0].id : t.kreditBaruId, client: t.client, group: t.group||'',
+    fromTagihan: t.noTagihan, tanggal: t.tanggal, jumlah: perlu, terpakai: false,
+  });
+}
+
 async function saveEdit() {
   const id = editingId;
   if (!id) return;
@@ -1680,8 +1715,9 @@ async function saveEdit() {
 
   const bayarRows      = getBayarRows('e-bayar-list');
   const totalBayarCash = bayarRows.reduce((s,r)=>s+r.jumlah,0);
-  const kreditIds      = [...editSelKredit];
-  const kreditUsed     = KREDIT_POOL.filter(k=>editSelKredit.has(String(k.id))).reduce((s,k)=>s+(+k.jumlah||0),0);
+  const ek             = editKredit(TAGIHANLIST[idx]);
+  const kreditIds      = [...new Set([...(TAGIHANLIST[idx].kreditIds||[]).map(String), ...ek.baru.map(k=>String(k.id))])];
+  const kreditUsed     = ek.used;
   const totalBayar     = totalBayarCash + kreditUsed;
   const notaList       = [...editSelNotas];
 
@@ -1706,6 +1742,7 @@ async function saveEdit() {
 
   const sisa   = totalTagihan - totalBayar;
   const status = totalBayar===0?'PENDING':sisa===0?'LUNAS':sisa<0?'KREDIT':'PENDING';
+  const noLama = TAGIHANLIST[idx].noTagihan;
 
   TAGIHANLIST[idx] = {
     ...TAGIHANLIST[idx],
@@ -1715,7 +1752,10 @@ async function saveEdit() {
     notaList, notaIds, notas: notaList.length,
     bayarRows, kreditIds, kreditUsed,
     totalBayar, totalTagihan, sisa, status,
+    kreditBaruId: 'k' + id,
   };
+  pakaiKreditLokal(ek.baru.map(k=>k.id));
+  sinkronKreditLokal(TAGIHANLIST[idx], [noLama]);
 
   closeEdit();
   renderDaftar();
@@ -1805,7 +1845,7 @@ function updateCombineRingkasan() {
   const all    = [src, ...others];
   const totalNota    = all.reduce((s,t)=>s+(t.notaList||[]).length,0);
   const totalTagihan = all.reduce((s,t)=>s+t.totalTagihan,0);
-  const totalBayar   = all.reduce((s,t)=>s+t.totalBayar,0);
+  const totalBayar   = all.reduce((s,t)=>s+(t.bayarRows||[]).reduce((a,b)=>a+(+b.jumlah||0),0)+(+t.kreditUsed||0),0);
   const sisa         = totalTagihan - totalBayar;
   const sisaColor    = sisa<0?'var(--blue)':sisa>0?'var(--accent)':'var(--text-3)';
 
@@ -1831,7 +1871,11 @@ async function saveCombine() {
   const notaList     = all.flatMap(t=>t.notaList||[]);
   const bayarRows    = all.flatMap(t=>t.bayarRows||[]);
   const totalTagihan = all.reduce((s,t)=>s+t.totalTagihan,0);
-  const totalBayar   = bayarRows.reduce((s,b)=>s+b.jumlah,0);
+  /* Kredit yang sudah dipakai tagihan-tagihan lama ikut terhitung;
+     dulu hilang, sehingga gabungan tampak kurang bayar. */
+  const kreditUsed   = all.reduce((s,t)=>s+(+t.kreditUsed||0),0);
+  const kreditIds    = [...new Set(all.flatMap(t=>(t.kreditIds||[]).map(String)))];
+  const totalBayar   = bayarRows.reduce((s,b)=>s+b.jumlah,0) + kreditUsed;
   const sisa         = totalTagihan - totalBayar;
   const status       = totalBayar===0?'PENDING':sisa===0?'LUNAS':sisa<0?'KREDIT':'PENDING';
   const noTagihan    = document.getElementById('comb-notag').value.trim() || src.noTagihan+'-G';
@@ -1851,9 +1895,12 @@ async function saveCombine() {
     notas: notaList.length, notaList,
     periode: src.periode, // approximate
     totalTagihan, totalBayar, sisa, status,
+    kreditUsed, kreditIds,
     bayarRows,
     catatan: `Gabungan dari: ${all.map(t=>t.noTagihan).join(', ')}`,
   };
+  merged.kreditBaruId = 'k' + merged.id;
+  sinkronKreditLokal(merged, all.map(t=>t.noTagihan));
 
   // Remove old, add merged
   const removeIds = new Set([combineSourceId, ...combineSelIds]);
